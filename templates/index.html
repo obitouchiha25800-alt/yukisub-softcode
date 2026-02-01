@@ -564,19 +564,19 @@
         <div class="card">
             <!-- Main Form -->
             <form id="muxForm" enctype="multipart/form-data">
-                <!-- Video URL Input -->
+                <!-- Video URL Input (NO required attribute) -->
                 <div class="form-group">
                     <label for="video_url">Video URL (.m3u8 / .mp4)</label>
-                    <input type="url" id="video_url" name="video_url" placeholder="Paste Video URL (.m3u8)" required>
+                    <input type="url" id="video_url" name="video_url" placeholder="Paste Video URL (.m3u8)">
                 </div>
 
-                <!-- Subtitle File Input -->
+                <!-- Subtitle File Input (NO required attribute) -->
                 <div class="form-group">
                     <label for="subtitle_file">Subtitle File (.ass)</label>
-                    <input type="file" id="subtitle_file" name="subtitle_file" accept=".ass" required>
+                    <input type="file" id="subtitle_file" name="subtitle_file" accept=".ass">
                 </div>
 
-                <!-- Font File Input (Dynamic) -->
+                <!-- Font File Input (Dynamic - NO required attribute) -->
                 <div class="form-group">
                     <label for="font_file">Font File (.ttf / .otf)</label>
 
@@ -589,7 +589,7 @@
                         <button type="button" class="remove-font-btn" id="removeFontBtn">✕</button>
                     </div>
 
-                    <!-- Font File Input (Shown by default) -->
+                    <!-- Font File Input (Shown by default - NO required attribute) -->
                     <input type="file" id="font_file" name="font_file" accept=".ttf,.otf">
                 </div>
 
@@ -713,14 +713,12 @@
                 // Show cached font indicator, hide file input
                 cachedFontIndicator.classList.add('active');
                 fontFileInput.style.display = 'none';
-                fontFileInput.removeAttribute('required');
                 cachedFontName.textContent = `Using Cached: ${cachedFont}`;
                 console.log('✅ Cached font UI shown:', cachedFont);
             } else {
                 // Hide cached font indicator, show file input
                 cachedFontIndicator.classList.remove('active');
                 fontFileInput.style.display = 'block';
-                fontFileInput.setAttribute('required', 'required');
                 console.log('ℹ️ No cached font, showing upload input');
             }
         }
@@ -829,35 +827,40 @@
         });
 
         // ============================================
-        // FORM SUBMISSION
+        // FORM SUBMISSION WITH MANUAL VALIDATION
         // ============================================
 
         form.addEventListener('submit', async (e) => {
+            // CRITICAL: Prevent default FIRST
             e.preventDefault();
 
-            // CRITICAL: Manual Validation (moved from HTML)
+            // ===== MANUAL VALIDATION (replaces HTML5 required) =====
             const videoUrl = videoUrlInput.value.trim();
             const subFile = subtitleFileInput.files.length > 0;
             const fontFile = fontFileInput.files.length > 0;
-            const existingCachedFont = getCachedFont();
+            const cachedFont = getCachedFont();
 
             // Validate Video URL
             if (!videoUrl) {
-                alert('Please enter a Video URL!');
+                alert('❌ Please enter a Video URL!');
+                videoUrlInput.focus();
                 return;
             }
 
             // Validate Subtitle File
             if (!subFile) {
-                alert('Please upload a Subtitle file!');
+                alert('❌ Please upload a Subtitle file!');
+                subtitleFileInput.focus();
                 return;
             }
 
-            // Validate Font File (check both upload and cached font)
-            if (fontFile === false && !existingCachedFont) {
-                alert('Please upload a Font file!');
+            // Validate Font (check both new upload and cached font)
+            if (!fontFile && !cachedFont) {
+                alert('❌ Please upload a Font file!');
+                fontFileInput.focus();
                 return;
             }
+            // ===== END MANUAL VALIDATION =====
 
             // Reset states
             errorMessage.classList.remove('active');
@@ -873,11 +876,11 @@
             const formData = new FormData(form);
 
             // Font handling
-            const cachedFont = getCachedFont();
-            if (cachedFont) {
+            const cachedFontForSubmit = getCachedFont();
+            if (cachedFontForSubmit) {
                 formData.delete('font_file');
-                formData.append('cached_font_name', cachedFont);
-                console.log('Using cached font:', cachedFont);
+                formData.append('cached_font_name', cachedFontForSubmit);
+                console.log('Using cached font:', cachedFontForSubmit);
             } else {
                 console.log('Uploading new font');
             }
