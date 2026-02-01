@@ -590,7 +590,7 @@
                     </div>
 
                     <!-- Font File Input (Shown by default) -->
-                    <input type="file" id="font_file" name="font_file" accept=".ttf,.otf" required>
+                    <input type="file" id="font_file" name="font_file" accept=".ttf,.otf">
                 </div>
 
                 <!-- Output Filename Input -->
@@ -833,6 +833,30 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // CRITICAL: Manual Validation (moved from HTML)
+            const videoUrl = videoUrlInput.value.trim();
+            const subFile = subtitleFileInput.files.length > 0;
+            const fontFile = fontFileInput.files.length > 0;
+            const existingCachedFont = getCachedFont();
+
+            // Validate Video URL
+            if (!videoUrl) {
+                alert('Please enter a Video URL!');
+                return;
+            }
+
+            // Validate Subtitle File
+            if (!subFile) {
+                alert('Please upload a Subtitle file!');
+                return;
+            }
+
+            // Validate Font File (check both upload and cached font)
+            if (fontFile === false && !existingCachedFont) {
+                alert('Please upload a Font file!');
+                return;
+            }
 
             // Reset states
             errorMessage.classList.remove('active');
