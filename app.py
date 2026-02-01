@@ -5,7 +5,6 @@ import uuid
 from pathlib import Path
 import shutil
 import threading
-import queue
 import re
 import time
 
@@ -25,15 +24,12 @@ ALLOWED_FONT_EXTENSIONS = {'ttf', 'otf'}
 # Global task tracking dictionary
 tasks = {}
 
-# Global job queue (FIFO)
-job_queue = queue.Queue()
-
 # Global storage counter (12-Job Limit)
 COMPLETED_JOBS = 0
 STORAGE_LIMIT = 12
 
-# Track active FFmpeg process for cleanup
-active_ffmpeg_process = None
+# Track active FFmpeg processes for cleanup
+active_ffmpeg_processes = {}
 process_lock = threading.Lock()
 
 # Smart FFmpeg Path Detection
@@ -67,24 +63,11 @@ def parse_duration(duration_str):
         pass
     return None
 
-def get_queue_position(task_id):
+def run_ffmpeg_task(task_id, video_url, subtitle_path, font_path, output_path, custom_filename):
     """
-    Calculate the position of a task in the queue
+    Run FFmpeg muxing task in background thread
     """
-    position = 0
-    with job_queue.mutex:
-        queue_list = list(job_queue.queue)
-        for idx, job in enumerate(queue_list):
-            if job['task_id'] == task_id:
-                position = idx + 1
-                break
-    return position
-
-def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, custom_filename):
-    """
-    Process FFmpeg muxing with progress tracking
-    """
-    global COMPLETED_JOBS, active_ffmpeg_process
+    global COMPLETED_JOBS
     
     try:
         tasks[task_id]['status'] = 'processing'
@@ -99,7 +82,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
         print(f"📄 Custom Filename: {custom_filename}")
         print(f"{'='*60}\n")
 
-        # Construct FFmpeg command
+        # Construct FFmpeg command with FORCED DEFAULT SUBTITLES
         ffmpeg_command = [
             FFMPEG_PATH,
             '-y',
@@ -111,7 +94,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
             '-map', '0:v:0',
             '-map', '0:a:0',
             '-map', '1',
-            '-disposition:s:0', 'default',
+            '-disposition:s:0', 'default',  # FORCE SUBTITLES ON BY DEFAULT
             '-progress', 'pipe:1',
             output_path
         ]
@@ -119,7 +102,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
         print(f"🚀 Executing FFmpeg Command:")
         print(f"   {' '.join(ffmpeg_command)}\n")
 
-        # Start FFmpeg process and track it globally
+        # Start FFmpeg process and track it
         process = subprocess.Popen(
             ffmpeg_command,
             stdout=subprocess.PIPE,
@@ -130,7 +113,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
         
         # Track the active process
         with process_lock:
-            active_ffmpeg_process = process
+            active_ffmpeg_processes[task_id] = process
 
         # Variables for progress tracking
         duration = None
@@ -164,7 +147,8 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
         
         # Clear active process tracking
         with process_lock:
-            active_ffmpeg_process = None
+            if task_id in active_ffmpeg_processes:
+                del active_ffmpeg_processes[task_id]
 
         # Check if FFmpeg succeeded
         if process.returncode != 0:
@@ -215,53 +199,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
         
         # Increment counter even on exception
         COMPLETED_JOBS += 1
-        print(f"📊 Storage Counter: {COMPLETED_JOBS}/{STORAGE_LIMIT}")
-
-def process_queue():
-    """
-    Background worker thread that processes jobs from the queue one at a time
-    """
-    print("🔧 Queue Worker Thread Started!")
-    
-    while True:
-        try:
-            # Get job from queue (non-blocking for instant pickup)
-            try:
-                job = job_queue.get(block=False)
-            except queue.Empty:
-                # Idle state: Check 10x faster for instant first job pickup
-                time.sleep(0.1)
-                continue
-            
-            if job is None:
-                break  # Poison pill to stop the worker
-            
-            task_id = job['task_id']
-            print(f"\n🎯 Worker picked up job: {task_id}")
-            print(f"📋 Queue size: {job_queue.qsize()} jobs remaining\n")
-            
-            # Process the muxing job
-            process_muxing(
-                task_id=task_id,
-                video_url=job['video_url'],
-                subtitle_path=job['subtitle_path'],
-                font_path=job['font_path'],
-                output_path=job['output_path'],
-                custom_filename=job['custom_filename']
-            )
-            
-            # Mark job as done
-            job_queue.task_done()
-            
-            # CRITICAL: 5-second cooldown before next job
-            if not job_queue.empty():
-                print(f"😴 Cooldown: Waiting 5 seconds before next job...\n")
-                time.sleep(5)
-            
-        except Exception as e:
-            print(f"💥 Queue Worker Error: {str(e)}")
-            import traceback
-            traceback.print_exc()
+        print(f"📊 Storage Counter: {COMPLETED_JOBS}/{STORAGE_L IMIT}")
 
 @app.route('/')
 def index():
@@ -345,30 +283,25 @@ def start_mux():
 
         # Initialize task tracking
         tasks[task_id] = {
-            'status': 'queued',
+            'status': 'processing',  # Directly to processing (no queue!)
             'progress': 0,
             'output_path': output_path,
             'session_folder': session_folder,
             'filename': custom_filename
         }
 
-        # Add job to queue
-        job = {
-            'task_id': task_id,
-            'video_url': video_url,
-            'subtitle_path': subtitle_path,
-            'font_path': font_path,
-            'output_path': output_path,
-            'custom_filename': custom_filename
-        }
-        job_queue.put(job)
+        # START IMMEDIATELY IN BACKGROUND THREAD (NO QUEUE!)
+        thread = threading.Thread(
+            target=run_ffmpeg_task,
+            args=(task_id, video_url, subtitle_path, font_path, output_path, custom_filename),
+            daemon=True
+        )
+        thread.start()
 
-        queue_position = get_queue_position(task_id)
-        print(f"✅ Task {task_id} added to queue (Position: {queue_position}, Total: {job_queue.qsize()})")
+        print(f"✅ Task {task_id} started immediately in background thread")
 
         return jsonify({
             'task_id': task_id,
-            'queue_position': queue_position,
             'font_name': font_name,
             'storage_used': COMPLETED_JOBS,
             'storage_limit': STORAGE_LIMIT
@@ -391,15 +324,6 @@ def get_progress(task_id):
     task = tasks[task_id]
     status = task['status']
     anime_name = task.get('filename', 'Unknown')
-    
-    # If queued, return position
-    if status == 'queued':
-        position = get_queue_position(task_id)
-        return jsonify({
-            'status': 'queued',
-            'position': position,
-            'anime_name': anime_name
-        })
     
     # If processing, return progress
     if status == 'processing':
@@ -485,30 +409,31 @@ def clear_data():
     """
     Aggressively clears all temporary data, kills FFmpeg processes, and resets the storage counter
     """
-    global COMPLETED_JOBS, active_ffmpeg_process
+    global COMPLETED_JOBS
     
     try:
         print("\n" + "="*60)
         print("🗑️ AGGRESSIVELY CLEARING ALL DATA...")
         print("="*60)
         
-        # CRITICAL: Kill active FFmpeg process if running
+        # CRITICAL: Kill all active FFmpeg processes
         with process_lock:
-            if active_ffmpeg_process and active_ffmpeg_process.poll() is None:
-                try:
-                    print("⚔️ Terminating active FFmpeg process...")
-                    active_ffmpeg_process.terminate()
+            for task_id, process in list(active_ffmpeg_processes.items()):
+                if process and process.poll() is None:
                     try:
-                        active_ffmpeg_process.wait(timeout=3)
-                        print("✅ FFmpeg process terminated gracefully")
-                    except subprocess.TimeoutExpired:
-                        print("💀 Force killing FFmpeg process...")
-                        active_ffmpeg_process.kill()
-                        active_ffmpeg_process.wait()
-                        print("✅ FFmpeg process force killed")
-                except Exception as e:
-                    print(f"⚠️ Error killing FFmpeg process: {e}")
-            active_ffmpeg_process = None
+                        print(f"⚔️ Terminating FFmpeg process for task: {task_id}")
+                        process.terminate()
+                        try:
+                            process.wait(timeout=3)
+                            print(f"✅ Process {task_id} terminated gracefully")
+                        except subprocess.TimeoutExpired:
+                            print(f"💀 Force killing process {task_id}...")
+                            process.kill()
+                            process.wait()
+                            print(f"✅ Process {task_id} force killed")
+                    except Exception as e:
+                        print(f"⚠️ Error killing process {task_id}: {e}")
+            active_ffmpeg_processes.clear()
         
         # Reset counter
         old_count = COMPLETED_JOBS
@@ -547,15 +472,6 @@ def clear_data():
         tasks.clear()
         print(f"🗑️ Cleared tasks dictionary (all download links invalidated)")
         
-        # Clear queue (drain it)
-        while not job_queue.empty():
-            try:
-                job_queue.get_nowait()
-                job_queue.task_done()
-            except:
-                break
-        print(f"🗑️ Cleared job queue")
-        
         print("="*60)
         print("✅ ALL DATA AGGRESSIVELY CLEARED!")
         print("="*60 + "\n")
@@ -578,7 +494,7 @@ def flush_temp_folders():
     """
     Deletes and recreates temp folders to ensure a clean startup
     """
-    global COMPLETED_JOBS, active_ffmpeg_process
+    global COMPLETED_JOBS
     
     print("\n" + "="*60)
     print("🧹 FLUSHING TEMP FOLDERS ON STARTUP...")
@@ -587,15 +503,7 @@ def flush_temp_folders():
     # Reset global state
     COMPLETED_JOBS = 0
     tasks.clear()
-    active_ffmpeg_process = None
-    
-    # Clear job queue
-    while not job_queue.empty():
-        try:
-            job_queue.get_nowait()
-            job_queue.task_done()
-        except:
-            break
+    active_ffmpeg_processes.clear()
     
     # Delete and recreate temp_uploads
     if os.path.exists(TEMP_UPLOADS):
@@ -625,12 +533,6 @@ def flush_temp_folders():
     print("✅ FLUSH COMPLETE - CLEAN SLATE READY!")
     print("="*60 + "\n")
 
-# Start the background queue worker thread
-def start_worker():
-    worker_thread = threading.Thread(target=process_queue, daemon=True)
-    worker_thread.start()
-    print("✅ Background Queue Worker Started!\n")
-
 if __name__ == '__main__':
     print("\n" + "="*60)
     print("🚀 AD Web Muxing Server Starting...")
@@ -639,12 +541,10 @@ if __name__ == '__main__':
     print(f"🔤 Cached Fonts: {TEMP_FONTS}")
     print(f"🎥 FFmpeg Path: {FFMPEG_PATH}")
     print(f"📊 Storage Limit: {STORAGE_LIMIT} jobs")
+    print(f"⚡ Queue System: DISABLED (Immediate Threading)")
     print("="*60 + "\n")
     
     # CRITICAL: Flush temp folders on startup for clean slate
     flush_temp_folders()
-    
-    # Start background worker
-    start_worker()
     
     app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
