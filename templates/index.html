@@ -353,28 +353,52 @@
             letter-spacing: 0.3px;
         }
 
-        .download-link {
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .download-link,
+        .copy-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            width: 100%;
+            flex: 1;
             padding: 16px;
-            background: linear-gradient(135deg, var(--success-green), #059669);
+            border: none;
             border-radius: 12px;
             color: white;
             text-align: center;
             text-decoration: none;
             font-weight: 600;
             font-size: 14px;
-            margin-top: 16px;
+            cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
+        }
+
+        .download-link {
+            background: linear-gradient(135deg, var(--success-green), #059669);
         }
 
         .download-link:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, var(--primary-violet), var(--primary-indigo));
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+        }
+
+        .copy-btn.copied {
+            background: linear-gradient(135deg, var(--success-green), #059669);
         }
 
         .expiry-info {
@@ -479,9 +503,15 @@
                 padding: 18px;
             }
 
-            .download-link {
-                padding: 16px;
-                font-size: 14px;
+            .download-link,
+            .copy-btn {
+                padding: 14px;
+                font-size: 13px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
             }
         }
 
@@ -589,6 +619,9 @@
     </footer>
 
     <script>
+        // Global variable to store absolute download URL
+        let currentDownloadUrl = '';
+
         // ===================== SESSION STORAGE FONT CACHE =====================
         function checkCachedFont() {
             const cachedFont = sessionStorage.getItem('cached_font');
@@ -617,6 +650,47 @@
                 // Server returned HTML (crash/error page) instead of JSON
                 console.error('Server returned non-JSON response:', text);
                 throw new Error('Server crash or internal error. Please try again.');
+            }
+        }
+
+        // ===================== COPY TO CLIPBOARD FUNCTION =====================
+        async function copyToClipboard() {
+            if (!currentDownloadUrl) {
+                alert('\u26A0 No download link available');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(currentDownloadUrl);
+
+                // Visual feedback
+                const copyBtn = document.getElementById('copyBtn');
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '&#10003; Copied!';
+                copyBtn.classList.add('copied');
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = currentDownloadUrl;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+
+                try {
+                    document.execCommand('copy');
+                    alert('\u2713 Link copied to clipboard!');
+                } catch (e) {
+                    alert('\u2716 Failed to copy. Please copy manually: ' + currentDownloadUrl);
+                }
+
+                document.body.removeChild(textArea);
             }
         }
 
@@ -760,15 +834,53 @@
                         document.getElementById('progressText').textContent =
                             `\u25B6 Processing: ${animeName} (${data.progress}%)`;
                         document.getElementById('progressBar').style.width = data.progress + '%';
+
+                        // INSTANT DONE STATE: If progress >= 100, show done UI immediately
+                        if (data.progress >= 100 && data.download_url) {
+                            clearInterval(pollingInterval);
+
+                            // Build absolute URL for download
+                            const fullUrl = window.location.origin + data.download_url;
+                            currentDownloadUrl = fullUrl;
+
+                            document.getElementById('progressText').textContent =
+                                `\u2713 Completed: ${animeName}`;
+                            document.getElementById('progressBar').style.width = '100%';
+                            document.getElementById('downloadContainer').innerHTML =
+                                `<div class="button-group">
+                                    <a href="${fullUrl}" class="download-link">
+                                        &#11015; Download
+                                    </a>
+                                    <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">
+                                        &#128203; Copy Link
+                                    </button>
+                                </div>
+                                <div class="expiry-info">
+                                    &#128337; Expires: ${data.expiry_display}
+                                </div>`;
+
+                            localStorage.removeItem('active_task_id');
+                            localStorage.removeItem('active_task_name');
+                        }
                     } else if (data.status === 'completed') {
                         clearInterval(pollingInterval);
+
+                        // Build absolute URL for download
+                        const fullUrl = window.location.origin + data.download_url;
+                        currentDownloadUrl = fullUrl;
+
                         document.getElementById('progressText').textContent =
                             `\u2713 Completed: ${animeName}`;
                         document.getElementById('progressBar').style.width = '100%';
                         document.getElementById('downloadContainer').innerHTML =
-                            `<a href="${data.download_url}" class="download-link">
-                                &#11015; Download MKV
-                            </a>
+                            `<div class="button-group">
+                                <a href="${fullUrl}" class="download-link">
+                                    &#11015; Download
+                                </a>
+                                <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">
+                                    &#128203; Copy Link
+                                </button>
+                            </div>
                             <div class="expiry-info">
                                 &#128337; Expires: ${data.expiry_display}
                             </div>`;
