@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AD Web Muxing</title>
+    <title>AD Web Muxing - Production</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -421,6 +421,29 @@
             font-size: 13px;
         }
 
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, var(--success-green), #059669);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+            font-weight: 600;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         /* Footer */
         footer {
             margin-top: auto;
@@ -513,6 +536,12 @@
                 flex-direction: column;
                 gap: 10px;
             }
+
+            .toast {
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+            }
         }
 
         @media (max-width: 360px) {
@@ -587,7 +616,7 @@
                     <span class="symbol">&#9998;</span>
                     Output Filename
                 </label>
-                <input type="text" id="outputName" name="output_name" placeholder="My Video Episode 01">
+                <input type="text" id="outputName" name="output_name" placeholder="Dead Account - S01E04">
             </div>
 
             <!-- Submit Button -->
@@ -610,6 +639,9 @@
             <div id="downloadContainer"></div>
         </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">&#10003; Link copied to clipboard!</div>
 
     <footer>
         <div class="footer-content">
@@ -647,10 +679,20 @@
             try {
                 return JSON.parse(text);
             } catch (e) {
-                // Server returned HTML (crash/error page) instead of JSON
                 console.error('Server returned non-JSON response:', text);
                 throw new Error('Server crash or internal error. Please try again.');
             }
+        }
+
+        // ===================== TOAST NOTIFICATION =====================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
 
         // ===================== COPY TO CLIPBOARD FUNCTION =====================
@@ -669,6 +711,9 @@
                 copyBtn.innerHTML = '&#10003; Copied!';
                 copyBtn.classList.add('copied');
 
+                // Show toast
+                showToast('\u2713 Link copied to clipboard!');
+
                 // Reset after 2 seconds
                 setTimeout(() => {
                     copyBtn.innerHTML = originalText;
@@ -685,7 +730,7 @@
 
                 try {
                     document.execCommand('copy');
-                    alert('\u2713 Link copied to clipboard!');
+                    showToast('\u2713 Link copied to clipboard!');
                 } catch (e) {
                     alert('\u2716 Failed to copy. Please copy manually: ' + currentDownloadUrl);
                 }
@@ -740,7 +785,6 @@
                     body: formData
                 });
 
-                // Safe JSON parsing (handles HTML error pages)
                 const data = await safeJsonParse(response);
 
                 if (data.success) {
@@ -762,7 +806,6 @@
                     // Start polling
                     startPolling(data.task_id, outputName);
                 } else {
-                    // Show actual error message from server
                     const errorMsg = data.error || 'Unknown error occurred';
 
                     if (errorMsg.includes('Storage limit')) {
@@ -772,7 +815,6 @@
                     alert('\u2716 Error: ' + errorMsg);
                 }
             } catch (error) {
-                // Network error or server crash
                 alert('\u2716 ' + error.message);
             }
         });
@@ -786,7 +828,7 @@
                 const data = await safeJsonParse(response);
 
                 if (data.success) {
-                    alert('\u2713 Storage cleared successfully!');
+                    showToast('\u2713 Storage cleared successfully!');
                     document.getElementById('clearStorageBtn').classList.add('hidden');
                     localStorage.removeItem('active_task_id');
                     localStorage.removeItem('active_task_name');
@@ -799,7 +841,7 @@
             }
         });
 
-        // ===================== PROGRESS POLLING =====================
+        // ===================== PROGRESS POLLING - FAST (500ms) =====================
         let pollingInterval;
 
         function startPolling(taskId, animeName) {
@@ -812,7 +854,7 @@
             // Clear any existing interval
             if (pollingInterval) clearInterval(pollingInterval);
 
-            // Poll every 1 second
+            // Poll every 500ms (FAST for instant updates)
             pollingInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/progress/${taskId}`);
@@ -830,16 +872,22 @@
 
                     const data = await safeJsonParse(response);
 
+                    // Update progress bar
+                    if (data.progress !== undefined) {
+                        document.getElementById('progressBar').style.width = data.progress + '%';
+                    }
+
                     if (data.status === 'processing') {
                         document.getElementById('progressText').textContent =
                             `\u25B6 Processing: ${animeName} (${data.progress}%)`;
-                        document.getElementById('progressBar').style.width = data.progress + '%';
+                    }
 
-                        // INSTANT DONE STATE: If progress >= 100, show done UI immediately
-                        if (data.progress >= 100 && data.download_url) {
+                    // INSTANT SUCCESS: Show download UI immediately when progress hits 100%
+                    if (data.status === 'completed' || data.progress >= 100) {
+                        if (data.download_url) {
                             clearInterval(pollingInterval);
 
-                            // Build absolute URL for download
+                            // Build absolute URL for download (URL is already encoded on backend)
                             const fullUrl = window.location.origin + data.download_url;
                             currentDownloadUrl = fullUrl;
 
@@ -856,37 +904,12 @@
                                     </button>
                                 </div>
                                 <div class="expiry-info">
-                                    &#128337; Expires: ${data.expiry_display}
+                                    &#128337; Expires: ${data.expiry_display || 'N/A'}
                                 </div>`;
 
                             localStorage.removeItem('active_task_id');
                             localStorage.removeItem('active_task_name');
                         }
-                    } else if (data.status === 'completed') {
-                        clearInterval(pollingInterval);
-
-                        // Build absolute URL for download
-                        const fullUrl = window.location.origin + data.download_url;
-                        currentDownloadUrl = fullUrl;
-
-                        document.getElementById('progressText').textContent =
-                            `\u2713 Completed: ${animeName}`;
-                        document.getElementById('progressBar').style.width = '100%';
-                        document.getElementById('downloadContainer').innerHTML =
-                            `<div class="button-group">
-                                <a href="${fullUrl}" class="download-link">
-                                    &#11015; Download
-                                </a>
-                                <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">
-                                    &#128203; Copy Link
-                                </button>
-                            </div>
-                            <div class="expiry-info">
-                                &#128337; Expires: ${data.expiry_display}
-                            </div>`;
-
-                        localStorage.removeItem('active_task_id');
-                        localStorage.removeItem('active_task_name');
                     } else if (data.status === 'failed') {
                         clearInterval(pollingInterval);
                         document.getElementById('progressText').textContent = '\u2716 Processing Failed';
@@ -900,7 +923,7 @@
                     console.error('Polling error:', error);
                     // Don't stop polling on network errors
                 }
-            }, 1000);
+            }, 500); // FAST POLLING: 500ms for instant UI updates
         }
 
         // ===================== RESTORE PROGRESS ON RELOAD =====================
