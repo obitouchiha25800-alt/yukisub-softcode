@@ -1,10 +1,15 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AD Web Muxing !!</title>
+    <title>AD Web Muxing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <style>
         * {
             margin: 0;
@@ -12,934 +17,774 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-primary: #050505;
+            --bg-card: rgba(18, 18, 22, 0.75);
+            --bg-input: #151518;
+            --bg-input-hover: #1a1a1f;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-focus: rgba(139, 92, 246, 0.5);
+            --primary-violet: #8b5cf6;
+            --primary-indigo: #6366f1;
+            --success-green: #10b981;
+            --error-red: #ef4444;
+            --warning-orange: #f59e0b;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #121212;
-            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
-        }
-
-        /* Mobile-First Container */
-        .container {
-            width: 90%;
-            max-width: 500px;
-            margin-top: 40px;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        .header-title {
-            font-size: 2rem;
-            font-weight: bold;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe, #fd79a8);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: gradient-shift 3s ease infinite;
-            background-size: 200% 200%;
-        }
-
-        @keyframes gradient-shift {
-
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-        }
-
-        .header-icon {
-            width: 40px;
-            height: 40px;
-            fill: #6c5ce7;
-            animation: pulse 2s ease-in-out infinite;
+        /* Animated Mesh Gradient Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            max-width: 900px;
+            height: 900px;
+            background: radial-gradient(circle at center,
+                    rgba(139, 92, 246, 0.15) 0%,
+                    rgba(99, 102, 241, 0.1) 25%,
+                    rgba(59, 130, 246, 0.05) 50%,
+                    transparent 70%);
+            border-radius: 50%;
+            filter: blur(60px);
+            animation: pulse 8s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
         }
 
         @keyframes pulse {
 
             0%,
             100% {
-                transform: scale(1);
-                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
             }
 
             50% {
-                transform: scale(1.1);
-                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
             }
         }
 
-        /* Card */
-        .card {
-            background: #1e272e;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(108, 92, 231, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        .container {
+            width: 90%;
+            max-width: 480px;
+            background: var(--bg-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px;
+            padding: 44px 36px;
+            box-shadow:
+                0 0 0 1px var(--border-subtle),
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 40px 120px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+            margin-bottom: 30px;
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 50px rgba(108, 92, 231, 0.3);
+        header {
+            text-align: center;
+            margin-bottom: 36px;
         }
 
-        /* Form Elements */
+        h1 {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 22px;
         }
 
         label {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             margin-bottom: 10px;
-            color: #a29bfe;
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 13px;
+            letter-spacing: 0.3px;
         }
 
-        /* Touch-Friendly Inputs */
+        label .symbol {
+            font-size: 14px;
+            color: var(--primary-violet);
+            opacity: 0.8;
+        }
+
         input[type="text"],
         input[type="url"] {
             width: 100%;
-            min-height: 48px;
-            padding: 14px 18px;
-            background: #121212;
-            border: 2px solid #2d3436;
+            padding: 14px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
             border-radius: 12px;
-            color: #ffffff;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            outline: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        input[type="text"]:hover,
+        input[type="url"]:hover {
+            background: var(--bg-input-hover);
+            border-color: rgba(255, 255, 255, 0.12);
         }
 
         input[type="text"]:focus,
         input[type="url"]:focus {
-            border-color: #6c5ce7;
-            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+            outline: none;
+            background: var(--bg-input-hover);
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
         }
 
+        input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* File Input Styling */
         input[type="file"] {
             width: 100%;
-            min-height: 48px;
-            padding: 14px 18px;
-            background: #121212;
-            border: 2px dashed #2d3436;
+            padding: 14px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
             border-radius: 12px;
-            color: #ffffff;
-            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         input[type="file"]:hover {
-            border-color: #6c5ce7;
-            background: #1a1a1a;
+            background: var(--bg-input-hover);
+            border-color: rgba(255, 255, 255, 0.12);
         }
 
-        input[type="file"]:focus {
-            outline: none;
-            border-color: #6c5ce7;
-            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
-        }
-
-        /* Utility Classes */
-        .hidden {
-            display: none !important;
-        }
-
-        /* Cached Font Indicator - Compact Badge Style */
-        .cached-font-indicator {
-            display: none;
+        input[type="file"]::file-selector-button {
+            background: linear-gradient(135deg, var(--primary-violet), var(--primary-indigo));
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
             font-size: 13px;
-            background: rgba(46, 204, 113, 0.15);
-            color: #2ecc71;
-            padding: 10px 14px;
-            border-radius: 6px;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-            align-items: center;
-            justify-content: space-between;
+            cursor: pointer;
+            margin-right: 12px;
+            transition: all 0.2s;
         }
 
-        .cached-font-indicator.active {
-            display: flex;
+        input[type="file"]::file-selector-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
-        .cached-font-text {
-            display: flex;
+        /* Font Badge Styling */
+        .font-cached-badge {
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-weight: 500;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            gap: 12px;
+            padding: 14px 18px;
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            color: var(--primary-violet);
+            font-weight: 600;
+            font-size: 13px;
         }
 
         .remove-font-btn {
-            background: transparent;
-            color: #e74c3c;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--error-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            opacity: 0.7;
-            flex-shrink: 0;
-        }
-
-        .remove-font-btn:hover {
-            background: rgba(231, 76, 60, 0.15);
-            opacity: 1;
-            transform: scale(1.05);
-        }
-
-        /* Submit Button - Touch Friendly */
-        .submit-btn {
-            width: 100%;
-            min-height: 52px;
-            padding: 16px;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border: none;
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 1.05rem;
             font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 12px;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
         }
 
-        .submit-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(108, 92, 231, 0.5);
-            background: linear-gradient(135deg, #5f4fd1, #8b85dd);
+        .remove-font-btn:hover {
+            background: rgba(239, 68, 68, 0.25);
+            transform: rotate(90deg);
         }
 
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-icon {
-            width: 22px;
-            height: 22px;
-            fill: currentColor;
-        }
-
-        /* Storage Alert */
-        .storage-alert {
-            display: none;
-            margin-top: 30px;
-            padding: 30px;
-            background: rgba(231, 76, 60, 0.1);
-            border-radius: 15px;
-            border: 2px solid rgba(231, 76, 60, 0.4);
-            text-align: center;
-        }
-
-        .storage-alert.active {
-            display: block;
-        }
-
-        .storage-alert-icon {
-            font-size: 3.5rem;
-            margin-bottom: 15px;
-        }
-
-        .storage-alert-title {
-            color: #e74c3c;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .storage-alert-message {
-            color: #bdc3c7;
-            font-size: 0.95rem;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-
-        .clear-storage-btn {
-            min-height: 48px;
-            padding: 14px 30px;
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        /* Premium Button with Shine Effect */
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-violet), var(--primary-indigo));
             border: none;
             border-radius: 12px;
-            color: #ffffff;
-            font-size: 0.95rem;
-            font-weight: bold;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .clear-storage-btn:hover {
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(231, 76, 60, 0.5);
-            background: linear-gradient(135deg, #c0392b, #a93226);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
         }
 
-        .clear-storage-btn:active {
+        .btn-primary:active {
             transform: translateY(0);
         }
 
-        /* Progress Container (Blue) - NO MORE QUEUE STATUS */
-        .progress-container {
-            display: none;
-            margin-top: 25px;
-            padding: 25px;
-            background: rgba(108, 92, 231, 0.1);
-            border-radius: 15px;
-            border: 2px solid rgba(108, 92, 231, 0.3);
-        }
-
-        .progress-container.active {
-            display: block;
-        }
-
-        .progress-text {
-            color: #a29bfe;
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .progress-bar-wrapper {
+        .btn-secondary {
             width: 100%;
-            height: 30px;
-            background: #121212;
-            border-radius: 15px;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--error-red), var(--warning-orange));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 16px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Progress Section */
+        .progress-section {
+            display: none;
+            margin-top: 30px;
+            padding: 22px;
+            background: rgba(30, 30, 35, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 16px 0;
         }
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+            background: linear-gradient(90deg, var(--primary-violet), var(--primary-indigo));
             width: 0%;
-            transition: width 0.5s ease;
-            display: flex;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+        }
+
+        .progress-text {
+            text-align: center;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 13px;
+            margin-top: 12px;
+            letter-spacing: 0.3px;
+        }
+
+        .download-link {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #ffffff;
-            font-weight: bold;
-            font-size: 0.85rem;
-            border-radius: 15px;
-        }
-
-        .spinner {
-            border: 4px solid rgba(108, 92, 231, 0.2);
-            border-top: 4px solid #6c5ce7;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto 0;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Error Message */
-        .error-message {
-            display: none;
-            margin-top: 20px;
-            padding: 15px 18px;
-            background: rgba(255, 71, 87, 0.1);
-            border: 2px solid rgba(255, 71, 87, 0.3);
+            gap: 8px;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--success-green), #059669);
             border-radius: 12px;
-            color: #ff4757;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .error-message.active {
-            display: block;
-        }
-
-        /* Success Message (Green) */
-        .success-message {
-            display: none;
-            margin-top: 20px;
-            padding: 15px 18px;
-            background: rgba(39, 174, 96, 0.1);
-            border: 2px solid rgba(39, 174, 96, 0.3);
-            border-radius: 12px;
-            color: #27ae60;
-            font-weight: 500;
+            color: white;
             text-align: center;
-            font-size: 0.9rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .success-message.active {
-            display: block;
+        .download-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        }
+
+        .expiry-info {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 12px;
+            letter-spacing: 0.3px;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error-red);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 13px;
         }
 
         /* Footer */
-        .footer {
-            margin-top: 50px;
+        footer {
+            margin-top: auto;
+            padding: 20px;
             text-align: center;
-            color: #636e72;
-            font-size: 0.85rem;
-            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 13px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* Mobile Responsive - Phones */
+        .footer-content {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .zigzag-arrow {
+            color: var(--primary-violet);
+            font-size: 16px;
+            filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6));
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
+            }
+
+            to {
+                filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.8));
+            }
+        }
+
+        /* Mobile Responsive - CRITICAL */
         @media (max-width: 480px) {
             body {
-                padding: 15px;
+                padding: 30px 16px;
             }
 
             .container {
                 width: 95%;
-                margin-top: 20px;
+                padding: 32px 24px;
+                border-radius: 20px;
             }
 
-            .header {
-                margin-bottom: 25px;
-                gap: 10px;
+            h1 {
+                font-size: 26px;
             }
 
-            .header-title {
-                font-size: 1.6rem;
-            }
-
-            .header-icon {
-                width: 32px;
-                height: 32px;
-            }
-
-            .card {
-                padding: 20px;
-                border-radius: 15px;
+            .subtitle {
+                font-size: 13px;
             }
 
             label {
-                font-size: 0.85rem;
+                font-size: 12px;
             }
 
             input[type="text"],
             input[type="url"],
             input[type="file"] {
-                font-size: 0.95rem;
-                min-height: 46px;
+                padding: 14px 14px;
+                font-size: 14px;
             }
 
-            .submit-btn {
-                font-size: 0.95rem;
-                min-height: 50px;
+            .btn-primary,
+            .btn-secondary {
+                padding: 16px;
+                font-size: 15px;
             }
 
-            .storage-alert {
-                padding: 20px;
+            .font-cached-badge {
+                padding: 12px 14px;
+                font-size: 12px;
             }
 
-            .storage-alert-icon {
-                font-size: 3rem;
-            }
-
-            .storage-alert-title {
-                font-size: 1.1rem;
-            }
-
-            .storage-alert-message {
-                font-size: 0.9rem;
-            }
-
-            .progress-text {
-                font-size: 0.9rem;
-            }
-
-            .footer {
-                margin-top: 30px;
-                font-size: 0.8rem;
-            }
-        }
-
-        /* Very Small Phones */
-        @media (max-width: 360px) {
-            .header-title {
-                font-size: 1.4rem;
-            }
-
-            .card {
+            .progress-section {
                 padding: 18px;
             }
 
-            .cached-font-text {
-                font-size: 12px;
+            .download-link {
+                padding: 16px;
+                font-size: 14px;
             }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 28px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            input[type="file"]::file-selector-button {
+                padding: 7px 12px;
+                font-size: 12px;
+                margin-right: 8px;
+            }
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path
-                    d="M21 3H3C1.9 3 1 3.9 1 5V17C1 18.1 1.9 19 3 19H8V21H16V19H21C22.1 19 23 18.1 23 17V5C23 3.9 22.1 3 21 3ZM21 17H3V5H21V17ZM16 11L10 7V15L16 11Z" />
-            </svg>
-            <h1 class="header-title">AD Web Muxing !!</h1>
-        </div>
+        <header>
+            <h1>AD Web Muxing</h1>
+            <p class="subtitle">Video + Subtitles + Fonts &#8594; MKV</p>
+        </header>
 
-        <!-- Main Card -->
-        <div class="card">
-            <!-- Main Form -->
-            <form id="muxForm" enctype="multipart/form-data">
-                <!-- Video URL Input (NO required attribute) -->
-                <div class="form-group">
-                    <label for="video_url">Video URL (.m3u8 / .mp4)</label>
-                    <input type="url" id="video_url" name="video_url" placeholder="Paste Video URL (.m3u8)">
+        <form id="muxForm">
+            <!-- Video URL -->
+            <div class="form-group">
+                <label>
+                    <span class="symbol">&#9658;</span>
+                    Video URL
+                </label>
+                <input type="url" id="videoUrl" name="video_url" placeholder="https://example.com/video.m3u8">
+            </div>
+
+            <!-- Subtitle File -->
+            <div class="form-group">
+                <label>
+                    <span class="symbol">&#128196;</span>
+                    Subtitle File
+                </label>
+                <input type="file" id="subtitleFile" name="subtitle_file" accept=".ass">
+            </div>
+
+            <!-- Font File (Dynamic) -->
+            <div class="form-group">
+                <label>
+                    <span class="symbol">&#128195;</span>
+                    Font File
+                </label>
+                <div id="fontInputContainer">
+                    <input type="file" id="fontFile" name="font_file" accept=".ttf,.otf">
                 </div>
-
-                <!-- Subtitle File Input (NO required attribute) -->
-                <div class="form-group">
-                    <label for="subtitle_file">Subtitle File (.ass)</label>
-                    <input type="file" id="subtitle_file" name="subtitle_file" accept=".ass">
-                </div>
-
-                <!-- Font File Input (Dynamic - NO required attribute) -->
-                <div class="form-group">
-                    <label for="font_file">Font File (.ttf / .otf)</label>
-
-                    <!-- Cached Font Indicator (HIDDEN by default) -->
-                    <div class="cached-font-indicator" id="cachedFontIndicator">
-                        <div class="cached-font-text">
-                            <span>✅</span>
-                            <span id="cachedFontName">Using Cached Font</span>
-                        </div>
-                        <button type="button" class="remove-font-btn" id="removeFontBtn">✕</button>
+                <div id="fontCachedContainer" class="hidden">
+                    <div class="font-cached-badge">
+                        &#10003; Cached Font: <span id="cachedFontName"></span>
+                        <button type="button" class="remove-font-btn" id="removeFontBtn">&#10005;</button>
                     </div>
-
-                    <!-- Font File Input (Shown by default - NO required attribute) -->
-                    <input type="file" id="font_file" name="font_file" accept=".ttf,.otf">
                 </div>
-
-                <!-- Output Filename Input -->
-                <div class="form-group">
-                    <label for="output_filename">Output Filename (Optional)</label>
-                    <input type="text" id="output_filename" name="output_filename"
-                        placeholder="Your Lie in April Ep 01">
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <svg class="btn-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 5V19L19 12L8 5Z" fill="currentColor" />
-                    </svg>
-                    Start Muxing
-                </button>
-            </form>
-
-            <!-- Storage Alert (Hidden by default) -->
-            <div class="storage-alert" id="storageAlert">
-                <div class="storage-alert-icon">♻️</div>
-                <div class="storage-alert-title">Storage Limit Reached (12/12)</div>
-                <div class="storage-alert-message">
-                    The server has processed 12 jobs and needs to clear temporary files.<br>
-                    Click below to free up space and continue.
-                </div>
-                <button class="clear-storage-btn" id="clearStorageBtn">Clear Storage & Continue</button>
             </div>
 
-            <!-- Progress Container (Blue) - NO QUEUE, JUST PROCESSING -->
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-text" id="progressText">Processing...</div>
-                <div class="progress-bar-wrapper">
-                    <div class="progress-bar" id="progressBar">0%</div>
-                </div>
-                <div class="spinner"></div>
+            <!-- Output Name -->
+            <div class="form-group">
+                <label>
+                    <span class="symbol">&#9998;</span>
+                    Output Filename
+                </label>
+                <input type="text" id="outputName" name="output_name" placeholder="My Video Episode 01">
             </div>
 
-            <!-- Success Message (Green) -->
-            <div class="success-message" id="successMessage">
-                ✅ Processing complete! Download started automatically.
+            <!-- Submit Button -->
+            <button type="submit" class="btn-primary" id="startBtn">
+                &#9658; Start Muxing
+            </button>
+
+            <!-- Clear Storage Button -->
+            <button type="button" class="btn-secondary hidden" id="clearStorageBtn">
+                &#9888; Clear Storage
+            </button>
+        </form>
+
+        <!-- Progress Section -->
+        <div class="progress-section" id="progressSection">
+            <div class="progress-text" id="progressText">&#8987; Initializing...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
             </div>
-
-            <!-- Error Message -->
-            <div class="error-message" id="errorMessage"></div>
-        </div>
-
-        <!-- Footer with Cool Thunder Symbol -->
-        <div class="footer">
-            Powered by YukiSub • Made by Ad <span
-                style="color: #a55eea; font-size: 1.2em; text-shadow: 0 0 5px #a55eea;">↯</span>
+            <div id="downloadContainer"></div>
         </div>
     </div>
 
+    <footer>
+        <div class="footer-content">
+            <span>Powered by YukiSub &bull; Made by Ad</span>
+            <span class="zigzag-arrow">↯</span>
+        </div>
+    </footer>
+
     <script>
-        const form = document.getElementById('muxForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const storageAlert = document.getElementById('storageAlert');
-        const clearStorageBtn = document.getElementById('clearStorageBtn');
-
-        // Font caching elements
-        const fontFileInput = document.getElementById('font_file');
-        const cachedFontIndicator = document.getElementById('cachedFontIndicator');
-        const cachedFontName = document.getElementById('cachedFontName');
-        const removeFontBtn = document.getElementById('removeFontBtn');
-
-        // Form fields
-        const videoUrlInput = document.getElementById('video_url');
-        const subtitleFileInput = document.getElementById('subtitle_file');
-        const outputFilenameInput = document.getElementById('output_filename');
-
-        let pollInterval = null;
-
-        // ============================================
-        // FORM RESET FUNCTION
-        // ============================================
-
-        function resetForm() {
-            videoUrlInput.value = '';
-            subtitleFileInput.value = '';
-            outputFilenameInput.value = '';
-            console.log('✅ Form cleared (keeping cached font)');
-        }
-
-        // ============================================
-        // FONT CACHING LOGIC (sessionStorage)
-        // ============================================
-
-        function getCachedFont() {
-            return sessionStorage.getItem('cachedFont');
-        }
-
-        function setCachedFont(fontName) {
-            sessionStorage.setItem('cachedFont', fontName);
-        }
-
-        function removeCachedFont() {
-            sessionStorage.removeItem('cachedFont');
-        }
-
-        function updateFontUI() {
-            const cachedFont = getCachedFont();
-
+        // ===================== SESSION STORAGE FONT CACHE =====================
+        function checkCachedFont() {
+            const cachedFont = sessionStorage.getItem('cached_font');
             if (cachedFont) {
-                // Show cached font indicator, hide file input
-                cachedFontIndicator.classList.add('active');
-                fontFileInput.style.display = 'none';
-                cachedFontName.textContent = `Using Cached: ${cachedFont}`;
-                console.log('✅ Cached font UI shown:', cachedFont);
+                document.getElementById('fontInputContainer').classList.add('hidden');
+                document.getElementById('fontCachedContainer').classList.remove('hidden');
+                document.getElementById('cachedFontName').textContent = cachedFont;
             } else {
-                // Hide cached font indicator, show file input
-                cachedFontIndicator.classList.remove('active');
-                fontFileInput.style.display = 'block';
-                console.log('ℹ️ No cached font, showing upload input');
+                document.getElementById('fontInputContainer').classList.remove('hidden');
+                document.getElementById('fontCachedContainer').classList.add('hidden');
             }
         }
 
-        removeFontBtn.addEventListener('click', () => {
-            removeCachedFont();
-            updateFontUI();
+        // Remove cached font
+        document.getElementById('removeFontBtn').addEventListener('click', () => {
+            sessionStorage.removeItem('cached_font');
+            checkCachedFont();
         });
 
-        // CRITICAL: Initialize UI on page load
-        updateFontUI();
-
-        // ============================================
-        // PERSISTENT PROGRESS (localStorage)
-        // ============================================
-
-        function saveActiveTask(taskId) {
-            localStorage.setItem('activeTaskId', taskId);
-        }
-
-        function getActiveTask() {
-            return localStorage.getItem('activeTaskId');
-        }
-
-        function clearActiveTask() {
-            localStorage.removeItem('activeTaskId');
-        }
-
-        window.addEventListener('load', () => {
-            const activeTask = getActiveTask();
-            if (activeTask) {
-                console.log('Resuming task:', activeTask);
-                resumeTaskProgress(activeTask);
-            }
-        });
-
-        function resumeTaskProgress(taskId) {
-            submitBtn.disabled = true;
-            startPolling(taskId);
-        }
-
-        // ============================================
-        // STORAGE MANAGEMENT
-        // ============================================
-
-        function showStorageAlert() {
-            form.style.display = 'none';
-            storageAlert.classList.add('active');
-        }
-
-        function hideStorageAlert() {
-            storageAlert.classList.remove('active');
-            form.style.display = 'block';
-        }
-
-        clearStorageBtn.addEventListener('click', async () => {
-            try {
-                clearStorageBtn.disabled = true;
-                clearStorageBtn.textContent = 'Clearing...';
-
-                const response = await fetch('/clear-data', {
-                    method: 'POST'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to clear data');
-                }
-
-                const data = await response.json();
-                console.log('Data cleared:', data);
-
-                // Clear session storage (fonts)
-                sessionStorage.clear();
-                updateFontUI();
-
-                // Clear local storage (tasks)
-                localStorage.clear();
-
-                // Reset form
-                resetForm();
-
-                // Reset UI
-                hideStorageAlert();
-                errorMessage.classList.remove('active');
-                successMessage.classList.remove('active');
-                progressContainer.classList.remove('active');
-
-                // Show success message briefly
-                successMessage.textContent = '✅ Storage cleared successfully! You can now submit new jobs.';
-                successMessage.classList.add('active');
-                setTimeout(() => {
-                    successMessage.classList.remove('active');
-                    successMessage.textContent = '✅ Processing complete! Download started automatically.';
-                }, 3000);
-
-                clearStorageBtn.disabled = false;
-                clearStorageBtn.textContent = 'Clear Storage & Continue';
-
-            } catch (error) {
-                console.error('Error clearing data:', error);
-                alert('Failed to clear storage. Please try again.');
-                clearStorageBtn.disabled = false;
-                clearStorageBtn.textContent = 'Clear Storage & Continue';
-            }
-        });
-
-        // ============================================
-        // FORM SUBMISSION WITH MANUAL VALIDATION
-        // ============================================
-
-        form.addEventListener('submit', async (e) => {
-            // CRITICAL: Prevent default FIRST
+        // ===================== FORM SUBMISSION =====================
+        document.getElementById('muxForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // ===== MANUAL VALIDATION (replaces HTML5 required) =====
-            const videoUrl = videoUrlInput.value.trim();
-            const subFile = subtitleFileInput.files.length > 0;
-            const fontFile = fontFileInput.files.length > 0;
-            const cachedFont = getCachedFont();
+            // Manual JS Validation
+            const videoUrl = document.getElementById('videoUrl').value.trim();
+            const outputName = document.getElementById('outputName').value.trim();
+            const subtitleFile = document.getElementById('subtitleFile').files[0];
+            const fontFile = document.getElementById('fontFile').files[0];
+            const cachedFont = sessionStorage.getItem('cached_font');
 
-            // Validate Video URL
             if (!videoUrl) {
-                alert('❌ Please enter a Video URL!');
-                videoUrlInput.focus();
+                alert('\u26A0 Please enter a Video URL');
                 return;
             }
-
-            // Validate Subtitle File
-            if (!subFile) {
-                alert('❌ Please upload a Subtitle file!');
-                subtitleFileInput.focus();
+            if (!subtitleFile) {
+                alert('\u26A0 Please select a Subtitle file');
                 return;
             }
-
-            // Validate Font (check both new upload and cached font)
             if (!fontFile && !cachedFont) {
-                alert('❌ Please upload a Font file!');
-                fontFileInput.focus();
+                alert('\u26A0 Please upload a Font file or use a cached font');
                 return;
             }
-            // ===== END MANUAL VALIDATION =====
+            if (!outputName) {
+                alert('\u26A0 Please enter an Output Filename');
+                return;
+            }
 
-            // Reset states
-            errorMessage.classList.remove('active');
-            successMessage.classList.remove('active');
-            progressContainer.classList.remove('active');
-            errorMessage.textContent = '';
-            progressBar.style.width = '0%';
-            progressBar.textContent = '0%';
+            // Prepare FormData
+            const formData = new FormData();
+            formData.append('video_url', videoUrl);
+            formData.append('output_name', outputName);
+            formData.append('subtitle_file', subtitleFile);
 
-            submitBtn.disabled = true;
-
-            const formData = new FormData(form);
-
-            // Font handling
-            const cachedFontForSubmit = getCachedFont();
-            if (cachedFontForSubmit) {
-                formData.delete('font_file');
-                formData.append('cached_font_name', cachedFontForSubmit);
-                console.log('Using cached font:', cachedFontForSubmit);
+            if (fontFile) {
+                formData.append('font_file', fontFile);
             } else {
-                console.log('Uploading new font');
+                formData.append('cached_font', cachedFont);
             }
 
             try {
-                const startResponse = await fetch('/start-mux', {
+                const response = await fetch('/start-mux', {
                     method: 'POST',
                     body: formData
                 });
 
-                const responseData = await startResponse.json();
+                const data = await response.json();
 
-                // Check for STORAGE_FULL error
-                if (responseData.error === 'STORAGE_FULL') {
-                    console.warn('Storage limit reached!');
-                    alert('⚠️ Storage Limit Reached (12/12)!\n\nPlease clear the storage to continue.');
-                    showStorageAlert();
-                    submitBtn.disabled = false;
-                    return;
+                if (data.success) {
+                    // Save font to session if new upload
+                    if (fontFile) {
+                        sessionStorage.setItem('cached_font', data.font_name);
+                        checkCachedFont();
+                    }
+
+                    // Save task_id to localStorage
+                    localStorage.setItem('active_task_id', data.task_id);
+                    localStorage.setItem('active_task_name', outputName);
+
+                    // Clear form inputs (except font)
+                    document.getElementById('videoUrl').value = '';
+                    document.getElementById('outputName').value = '';
+                    document.getElementById('subtitleFile').value = '';
+
+                    // Start polling
+                    startPolling(data.task_id, outputName);
+                } else {
+                    if (data.error === 'STORAGE_FULL') {
+                        document.getElementById('clearStorageBtn').classList.remove('hidden');
+                        alert('\u26A0 Storage Full! You have reached the 12-job limit.');
+                    } else {
+                        alert('\u2716 Error: ' + data.message);
+                    }
                 }
-
-                if (!startResponse.ok) {
-                    throw new Error(responseData.error || 'Failed to start processing');
-                }
-
-                const { task_id, font_name } = responseData;
-                console.log('Task started:', task_id);
-                console.log('Font name:', font_name);
-
-                // Save font name to session storage
-                if (font_name) {
-                    setCachedFont(font_name);
-                    updateFontUI();
-                }
-
-                // CRITICAL: Clear form immediately after successful submission
-                resetForm();
-
-                // Save task to localStorage and start polling
-                saveActiveTask(task_id);
-                startPolling(task_id);
-
             } catch (error) {
-                console.error('Error:', error);
-                errorMessage.textContent = error.message || 'An error occurred during processing';
-                errorMessage.classList.add('active');
-                submitBtn.disabled = false;
+                alert('\u2716 Network error: ' + error.message);
             }
         });
 
-        // ============================================
-        // SIMPLIFIED PROGRESS POLLING (NO QUEUE STATUS)
-        // ============================================
+        // ===================== CLEAR STORAGE =====================
+        document.getElementById('clearStorageBtn').addEventListener('click', async () => {
+            if (!confirm('\u26A0 This will delete all completed jobs. Continue?')) return;
 
-        function startPolling(taskId) {
-            // Show progress container immediately
-            progressContainer.classList.add('active');
+            try {
+                const response = await fetch('/clear-data', { method: 'POST' });
+                const data = await response.json();
 
-            pollInterval = setInterval(async () => {
+                if (data.success) {
+                    alert('\u2713 Storage cleared successfully!');
+                    document.getElementById('clearStorageBtn').classList.add('hidden');
+                    localStorage.removeItem('active_task_id');
+                    localStorage.removeItem('active_task_name');
+                    document.getElementById('progressSection').style.display = 'none';
+                } else {
+                    alert('\u2716 Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('\u2716 Network error: ' + error.message);
+            }
+        });
+
+        // ===================== PROGRESS POLLING =====================
+        let pollingInterval;
+
+        function startPolling(taskId, animeName) {
+            // Show progress section
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('progressText').textContent = `\u23F3 Queued: ${animeName}`;
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('downloadContainer').innerHTML = '';
+
+            // Clear any existing interval
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            // Poll every 1 second
+            pollingInterval = setInterval(async () => {
                 try {
-                    const progressResponse = await fetch(`/progress/${taskId}`);
-                    const progressData = await progressResponse.json();
+                    const response = await fetch(`/progress/${taskId}`);
 
-                    console.log('Progress:', progressData);
-
-                    const { status, progress, error, anime_name } = progressData;
-
-                    // ONLY TWO STATES: processing or completed (NO QUEUE)
-                    if (status === 'processing') {
-                        progressContainer.classList.add('active');
-                        progressBar.style.width = `${progress}%`;
-                        progressBar.textContent = `${progress}%`;
-                        progressText.innerHTML = `🎬 Processing: <span style="color: #74b9ff; font-weight: bold;">${anime_name || 'Unknown'}</span> (${progress}%)`;
+                    if (response.status === 410) {
+                        // Link expired
+                        clearInterval(pollingInterval);
+                        document.getElementById('progressText').textContent = '\u26A0 Link Expired';
+                        document.getElementById('downloadContainer').innerHTML =
+                            '<div class="error-message">Download link has expired (6 hours)</div>';
+                        localStorage.removeItem('active_task_id');
+                        localStorage.removeItem('active_task_name');
+                        return;
                     }
 
-                    if (status === 'completed') {
-                        clearInterval(pollInterval);
-                        clearActiveTask();
-                        progressText.textContent = 'Complete! Starting download...';
+                    const data = await response.json();
 
-                        setTimeout(() => {
-                            progressContainer.classList.remove('active');
-                            successMessage.classList.add('active');
-                            submitBtn.disabled = false;
-                            updateFontUI();
-                        }, 1000);
+                    if (data.status === 'processing') {
+                        document.getElementById('progressText').textContent =
+                            `\u25B6 Processing: ${animeName} (${data.progress}%)`;
+                        document.getElementById('progressBar').style.width = data.progress + '%';
+                    } else if (data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        document.getElementById('progressText').textContent =
+                            `\u2713 Completed: ${animeName}`;
+                        document.getElementById('progressBar').style.width = '100%';
+                        document.getElementById('downloadContainer').innerHTML =
+                            `<a href="${data.download_url}" class="download-link">
+                                &#11015; Download MKV
+                            </a>
+                            <div class="expiry-info">
+                                &#128337; Expires: ${data.expiry_display}
+                            </div>`;
 
-                        window.location.href = `/download/${taskId}`;
+                        localStorage.removeItem('active_task_id');
+                        localStorage.removeItem('active_task_name');
+                    } else if (data.status === 'failed') {
+                        clearInterval(pollingInterval);
+                        document.getElementById('progressText').textContent = '\u2716 Processing Failed';
+                        document.getElementById('downloadContainer').innerHTML =
+                            `<div class="error-message">${data.error || 'Unknown error'}</div>`;
+
+                        localStorage.removeItem('active_task_id');
+                        localStorage.removeItem('active_task_name');
                     }
-
-                    if (status === 'error') {
-                        clearInterval(pollInterval);
-                        clearActiveTask();
-                        throw new Error(error || 'Processing failed');
-                    }
-
-                } catch (pollError) {
-                    clearInterval(pollInterval);
-                    clearActiveTask();
-
-                    errorMessage.textContent = pollError.message || 'An error occurred during processing';
-                    errorMessage.classList.add('active');
-                    progressContainer.classList.remove('active');
-                    submitBtn.disabled = false;
+                } catch (error) {
+                    console.error('Polling error:', error);
                 }
             }, 1000);
         }
+
+        // ===================== RESTORE PROGRESS ON RELOAD =====================
+        window.addEventListener('load', () => {
+            checkCachedFont();
+
+            const activeTaskId = localStorage.getItem('active_task_id');
+            const activeTaskName = localStorage.getItem('active_task_name');
+
+            if (activeTaskId && activeTaskName) {
+                startPolling(activeTaskId, activeTaskName);
+            }
+        });
     </script>
 </body>
 
