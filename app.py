@@ -75,18 +75,22 @@ def run_ffmpeg_task(task_id, video_url, sub_path, font_path, safe_output_filenam
         
         output_path = os.path.join(TEMP_UPLOADS, safe_output_filename)
         
-        # Build FFmpeg command
+        # Build FFmpeg command - FIXED for HLS subtitle sync issues
         ffmpeg_cmd = [
             FFMPEG_PATH,
-            '-i', video_url,              # Video input (m3u8)
+            '-y',                          # Overwrite output file
+            '-i', video_url,               # Video input (m3u8)
             '-i', sub_path,                # Subtitle input
-            '-map', '0:v:0',               # Map best video
-            '-map', '0:a:0',               # Map best audio
-            '-map', '1:s:0',               # Map subtitle
-            '-c', 'copy',                  # Stream copy (no re-encoding)
-            '-disposition:s:0', 'default', # Force subtitle as default
             '-attach', font_path,          # Attach font
-            '-metadata:s:t:0', f'mimetype=font/{os.path.splitext(font_path)[1][1:]}',
+            '-metadata:s:t', 'mimetype=application/x-truetype-font',
+            '-c:v', 'copy',                # Copy video stream
+            '-c:a', 'copy',                # Copy audio stream
+            '-c:s', 'ass',                 # Explicitly set subtitle codec (prevents drop)
+            '-map', '0:v:0',               # Map video from first input
+            '-map', '0:a:0',               # Map audio from first input
+            '-map', '1',                   # Map subtitle from second input
+            '-disposition:s:0', 'default', # Force subtitle as default
+            '-max_interleave_delta', '0',  # CRITICAL: Prevents 10s subtitle sync loss in HLS
             output_path
         ]
         
