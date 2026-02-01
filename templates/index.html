@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -315,42 +315,7 @@
             transform: translateY(0);
         }
 
-        /* Queue Status (Yellow) */
-        .queue-container {
-            display: none;
-            margin-top: 25px;
-            padding: 25px;
-            background: rgba(241, 196, 15, 0.1);
-            border-radius: 15px;
-            border: 2px solid rgba(241, 196, 15, 0.4);
-        }
-
-        .queue-container.active {
-            display: block;
-        }
-
-        .queue-text {
-            color: #f1c40f;
-            font-size: 1rem;
-            font-weight: 600;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .queue-icon {
-            font-size: 1.3rem;
-        }
-
-        .anime-name {
-            color: #74b9ff;
-            font-weight: bold;
-        }
-
-        /* Progress Container (Blue) */
+        /* Progress Container (Blue) - NO MORE QUEUE STATUS */
         .progress-container {
             display: none;
             margin-top: 25px;
@@ -521,7 +486,6 @@
                 font-size: 0.9rem;
             }
 
-            .queue-text,
             .progress-text {
                 font-size: 0.9rem;
             }
@@ -620,15 +584,7 @@
                 <button class="clear-storage-btn" id="clearStorageBtn">Clear Storage & Continue</button>
             </div>
 
-            <!-- Queue Status (Yellow) -->
-            <div class="queue-container" id="queueContainer">
-                <div class="queue-text">
-                    <span class="queue-icon">⏳</span>
-                    <span id="queueText">Waiting in Queue...</span>
-                </div>
-            </div>
-
-            <!-- Progress Container (Blue) -->
+            <!-- Progress Container (Blue) - NO QUEUE, JUST PROCESSING -->
             <div class="progress-container" id="progressContainer">
                 <div class="progress-text" id="progressText">Processing...</div>
                 <div class="progress-bar-wrapper">
@@ -646,7 +602,7 @@
             <div class="error-message" id="errorMessage"></div>
         </div>
 
-        <!-- Footer -->
+        <!-- Footer with Cool Thunder Symbol -->
         <div class="footer">
             Powered by YukiSub • Made by Ad <span
                 style="color: #a55eea; font-size: 1.2em; text-shadow: 0 0 5px #a55eea;">↯</span>
@@ -656,8 +612,6 @@
     <script>
         const form = document.getElementById('muxForm');
         const submitBtn = document.getElementById('submitBtn');
-        const queueContainer = document.getElementById('queueContainer');
-        const queueText = document.getElementById('queueText');
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
         const progressText = document.getElementById('progressText');
@@ -804,7 +758,6 @@
                 hideStorageAlert();
                 errorMessage.classList.remove('active');
                 successMessage.classList.remove('active');
-                queueContainer.classList.remove('active');
                 progressContainer.classList.remove('active');
 
                 // Show success message briefly
@@ -865,7 +818,6 @@
             // Reset states
             errorMessage.classList.remove('active');
             successMessage.classList.remove('active');
-            queueContainer.classList.remove('active');
             progressContainer.classList.remove('active');
             errorMessage.textContent = '';
             progressBar.style.width = '0%';
@@ -932,10 +884,13 @@
         });
 
         // ============================================
-        // PROGRESS POLLING
+        // SIMPLIFIED PROGRESS POLLING (NO QUEUE STATUS)
         // ============================================
 
         function startPolling(taskId) {
+            // Show progress container immediately
+            progressContainer.classList.add('active');
+
             pollInterval = setInterval(async () => {
                 try {
                     const progressResponse = await fetch(`/progress/${taskId}`);
@@ -943,20 +898,14 @@
 
                     console.log('Progress:', progressData);
 
-                    const { status, progress, position, error, anime_name } = progressData;
+                    const { status, progress, error, anime_name } = progressData;
 
-                    if (status === 'queued') {
-                        queueContainer.classList.add('active');
-                        progressContainer.classList.remove('active');
-                        queueText.innerHTML = `⏳ Queued: <span class="anime-name">${anime_name || 'Unknown'}</span> (Position: ${position})`;
-                    }
-
+                    // ONLY TWO STATES: processing or completed (NO QUEUE)
                     if (status === 'processing') {
-                        queueContainer.classList.remove('active');
                         progressContainer.classList.add('active');
                         progressBar.style.width = `${progress}%`;
                         progressBar.textContent = `${progress}%`;
-                        progressText.innerHTML = `🎬 Processing: <span class="anime-name">${anime_name || 'Unknown'}</span> (${progress}%)`;
+                        progressText.innerHTML = `🎬 Processing: <span style="color: #74b9ff; font-weight: bold;">${anime_name || 'Unknown'}</span> (${progress}%)`;
                     }
 
                     if (status === 'completed') {
@@ -986,7 +935,6 @@
 
                     errorMessage.textContent = pollError.message || 'An error occurred during processing';
                     errorMessage.classList.add('active');
-                    queueContainer.classList.remove('active');
                     progressContainer.classList.remove('active');
                     submitBtn.disabled = false;
                 }
