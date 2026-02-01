@@ -608,6 +608,18 @@
             checkCachedFont();
         });
 
+        // ===================== SAFE JSON PARSING HELPER =====================
+        async function safeJsonParse(response) {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                // Server returned HTML (crash/error page) instead of JSON
+                console.error('Server returned non-JSON response:', text);
+                throw new Error('Server crash or internal error. Please try again.');
+            }
+        }
+
         // ===================== FORM SUBMISSION =====================
         document.getElementById('muxForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -654,7 +666,8 @@
                     body: formData
                 });
 
-                const data = await response.json();
+                // Safe JSON parsing (handles HTML error pages)
+                const data = await safeJsonParse(response);
 
                 if (data.success) {
                     // Save font to session if new upload
@@ -675,15 +688,18 @@
                     // Start polling
                     startPolling(data.task_id, outputName);
                 } else {
-                    if (data.error === 'STORAGE_FULL') {
+                    // Show actual error message from server
+                    const errorMsg = data.error || 'Unknown error occurred';
+
+                    if (errorMsg.includes('Storage limit')) {
                         document.getElementById('clearStorageBtn').classList.remove('hidden');
-                        alert('\u26A0 Storage Full! You have reached the 12-job limit.');
-                    } else {
-                        alert('\u2716 Error: ' + data.message);
                     }
+
+                    alert('\u2716 Error: ' + errorMsg);
                 }
             } catch (error) {
-                alert('\u2716 Network error: ' + error.message);
+                // Network error or server crash
+                alert('\u2716 ' + error.message);
             }
         });
 
@@ -693,7 +709,7 @@
 
             try {
                 const response = await fetch('/clear-data', { method: 'POST' });
-                const data = await response.json();
+                const data = await safeJsonParse(response);
 
                 if (data.success) {
                     alert('\u2713 Storage cleared successfully!');
@@ -702,10 +718,10 @@
                     localStorage.removeItem('active_task_name');
                     document.getElementById('progressSection').style.display = 'none';
                 } else {
-                    alert('\u2716 Error: ' + data.error);
+                    alert('\u2716 Error: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
-                alert('\u2716 Network error: ' + error.message);
+                alert('\u2716 ' + error.message);
             }
         });
 
@@ -738,7 +754,7 @@
                         return;
                     }
 
-                    const data = await response.json();
+                    const data = await safeJsonParse(response);
 
                     if (data.status === 'processing') {
                         document.getElementById('progressText').textContent =
@@ -770,6 +786,7 @@
                     }
                 } catch (error) {
                     console.error('Polling error:', error);
+                    // Don't stop polling on network errors
                 }
             }, 1000);
         }
