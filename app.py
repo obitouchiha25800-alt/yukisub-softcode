@@ -225,8 +225,13 @@ def process_queue():
     
     while True:
         try:
-            # Get job from queue (blocks if queue is empty)
-            job = job_queue.get(block=True)
+            # Get job from queue (non-blocking for instant pickup)
+            try:
+                job = job_queue.get(block=False)
+            except queue.Empty:
+                # Idle state: Check 10x faster for instant first job pickup
+                time.sleep(0.1)
+                continue
             
             if job is None:
                 break  # Poison pill to stop the worker
