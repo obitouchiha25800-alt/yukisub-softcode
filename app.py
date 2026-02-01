@@ -111,6 +111,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
             '-map', '0:v:0',
             '-map', '0:a:0',
             '-map', '1',
+            '-disposition:s:0', 'default',
             '-progress', 'pipe:1',
             output_path
         ]
