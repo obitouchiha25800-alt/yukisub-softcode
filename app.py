@@ -60,32 +60,16 @@ def cleanup_temp_folders():
 
 
 def cleanup_expired_links():
-    """Background thread to delete expired files every 30 minutes"""
+    """
+    DISABLED: Auto-cleanup disabled to prevent premature deletion.
+    Files are now managed ONLY by:
+    1. MAX_JOBS limit (12 jobs)
+    2. Manual cleanup via /clear-data route
+    """
+    print("[INFO] Auto-cleanup thread DISABLED - Using manual cleanup only")
+    # Thread stays alive but does nothing
     while True:
-        try:
-            time.sleep(1800)  # 30 minutes
-            with task_lock:
-                current_time = datetime.now()
-                expired_tasks = []
-                
-                for task_id, task_data in tasks.items():
-                    if task_data['status'] == 'completed':
-                        expiry_time = datetime.fromisoformat(task_data['expiry_time'])
-                        if current_time >= expiry_time:
-                            # Delete file
-                            file_path = os.path.join(TEMP_UPLOADS, task_data['safe_filename'])
-                            if os.path.exists(file_path):
-                                os.remove(file_path)
-                            expired_tasks.append(task_id)
-                
-                # Remove expired tasks
-                for task_id in expired_tasks:
-                    del tasks[task_id]
-                
-                if expired_tasks:
-                    print(f"[CLEANUP] Removed {len(expired_tasks)} expired file(s)")
-        except Exception as e:
-            print(f"[CLEANUP ERROR] {e}")
+        time.sleep(3600)  # Sleep forever
 
 
 def run_ffmpeg_task(task_id, video_url, sub_path, font_path, output_name):
@@ -417,10 +401,10 @@ if __name__ == '__main__':
     print(f"[OK] Link expiration time: {LINK_EXPIRY_HOURS} hours")
     print(f"[OK] Max jobs: {MAX_JOBS}")
     
-    # Start cleanup daemon thread
+    # Auto-cleanup DISABLED - Files managed by MAX_JOBS limit only
     cleanup_thread = threading.Thread(target=cleanup_expired_links, daemon=True)
     cleanup_thread.start()
-    print("[OK] Auto-cleanup daemon started")
+    print("[OK] Auto-cleanup DISABLED - Using MAX_JOBS limit (12) + manual cleanup")
     
     print("=" * 60)
     print("  SERVER READY - Listening on http://0.0.0.0:5000")
