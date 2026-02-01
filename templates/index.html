@@ -345,6 +345,11 @@
             font-size: 1.3rem;
         }
 
+        .anime-name {
+            color: #74b9ff;
+            font-weight: bold;
+        }
+
         /* Progress Container (Blue) */
         .progress-container {
             display: none;
@@ -618,7 +623,7 @@
             <!-- Queue Status (Yellow) -->
             <div class="queue-container" id="queueContainer">
                 <div class="queue-text">
-                    <span class="queue-icon">⚠️</span>
+                    <span class="queue-icon">⏳</span>
                     <span id="queueText">Waiting in Queue...</span>
                 </div>
             </div>
@@ -910,12 +915,12 @@
 
                     console.log('Progress:', progressData);
 
-                    const { status, progress, position, error } = progressData;
+                    const { status, progress, position, error, anime_name } = progressData;
 
                     if (status === 'queued') {
                         queueContainer.classList.add('active');
                         progressContainer.classList.remove('active');
-                        queueText.textContent = `System Busy. Waiting in Queue (Position: ${position})`;
+                        queueText.innerHTML = `⏳ Queued: <span class="anime-name">${anime_name || 'Unknown'}</span> (Position: ${position})`;
                     }
 
                     if (status === 'processing') {
@@ -923,7 +928,7 @@
                         progressContainer.classList.add('active');
                         progressBar.style.width = `${progress}%`;
                         progressBar.textContent = `${progress}%`;
-                        progressText.textContent = `Processing: ${progress}%`;
+                        progressText.innerHTML = `🎬 Processing: <span class="anime-name">${anime_name || 'Unknown'}</span> (${progress}%)`;
                     }
 
                     if (status === 'completed') {
