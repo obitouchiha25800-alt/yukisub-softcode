@@ -4,32 +4,11 @@ import threading
 import subprocess
 import shutil
 import re
+import time
+from urllib.parse import quote, unquote
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
-import time
-
-
-def sanitize_with_spaces(filename):
-    """
-    Custom sanitization that allows spaces, brackets, and hyphens.
-    Removes dangerous characters like slashes to prevent directory traversal.
-    """
-    # Remove directory traversal characters and dangerous symbols
-    # Keep: Alphanumeric, spaces, dots, hyphens, underscores, brackets () []
-    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
-    
-    # Remove any leading/trailing spaces or dots
-    filename = filename.strip(). strip('.')
-    
-    # Collapse multiple spaces into single space
-    filename = re.sub(r'\s+', ' ', filename)
-    
-    # If filename is empty after sanitization, return a default name
-    if not filename:
-        return "output"
-    
-    return filename
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
@@ -37,7 +16,7 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 # Global storage
 TEMP_UPLOADS = 'temp_uploads'
 TEMP_FONTS = 'temp_fonts'
-FFMPEG_PATH = 'ffmpeg'  # Adjust if needed (e.g., 'C:\\ffmpeg\\bin\\ffmpeg.exe')
+FFMPEG_PATH = 'ffmpeg'  # Adjust if needed
 
 # Job tracking
 tasks = {}
@@ -47,6 +26,29 @@ LINK_EXPIRY_HOURS = 6
 
 # Lock for thread-safe operations
 task_lock = threading.Lock()
+
+
+def sanitize_filename_allow_spaces(name):
+    """
+    Custom sanitization that ALLOWS spaces, brackets, hyphens, dots.
+    REMOVES dangerous characters like slashes to prevent directory traversal.
+    This is used for BOTH saving files and looking them up.
+    """
+    # Remove directory traversal and dangerous filesystem characters
+    # Keep: Alphanumeric, spaces, dots, hyphens, underscores, brackets () []
+    name = re.sub(r'[\\/*?:"<>|]', "", name)
+    
+    # Remove leading/trailing spaces and dots
+    name = name.strip().strip('.')
+    
+    # Collapse multiple spaces into single space
+    name = re.sub(r'\s+', ' ', name)
+    
+    # If empty after sanitization, return default
+    if not name:
+        return "output"
+    
+    return name
 
 
 def cleanup_temp_folders():
@@ -86,7 +88,7 @@ def cleanup_expired_links():
             print(f"[CLEANUP ERROR] {e}")
 
 
-def run_ffmpeg_task(task_id, video_url, sub_path, font_path, safe_output_filename):
+def run_ffmpeg_task(task_id, video_url, sub_path, font_path, output_name):
     """Background thread function to process FFmpeg muxing"""
     global COMPLETED_JOBS
     
@@ -96,7 +98,14 @@ def run_ffmpeg_task(task_id, video_url, sub_path, font_path, safe_output_filenam
             tasks[task_id]['status'] = 'processing'
             tasks[task_id]['progress'] = 0
         
-        output_path = os.path.join(TEMP_UPLOADS, safe_output_filename)
+        # Sanitize output filename (ALLOW SPACES)
+        safe_output_name = sanitize_filename_allow_spaces(output_name)
+        
+        # Ensure .mkv extension
+        if not safe_output_name.lower().endswith('.mkv'):
+            safe_output_name = f"{safe_output_name}.mkv"
+        
+        output_path = os.path.abspath(os.path.join(TEMP_UPLOADS, safe_output_name))
         
         # Build FFmpeg command - FIXED for HLS subtitle sync issues
         ffmpeg_cmd = [
@@ -108,12 +117,12 @@ def run_ffmpeg_task(task_id, video_url, sub_path, font_path, safe_output_filenam
             '-metadata:s:t', 'mimetype=application/x-truetype-font',
             '-c:v', 'copy',                # Copy video stream
             '-c:a', 'copy',                # Copy audio stream
-            '-c:s', 'ass',                 # Explicitly set subtitle codec (prevents drop)
+            '-c:s', 'ass',                 # Explicitly set subtitle codec (prevents 10s drop)
             '-map', '0:v:0',               # Map video from first input
             '-map', '0:a:0',               # Map audio from first input
             '-map', '1',                   # Map subtitle from second input
             '-disposition:s:0', 'default', # Force subtitle as default
-            '-max_interleave_delta', '0',  # CRITICAL: Prevents 10s subtitle sync loss in HLS
+            '-max_interleave_delta', '0',  # CRITICAL: Prevents subtitle sync loss in HLS
             output_path
         ]
         
@@ -125,12 +134,12 @@ def run_ffmpeg_task(task_id, video_url, sub_path, font_path, safe_output_filenam
             universal_newlines=True
         )
         
-        # Monitor progress (simple simulation - FFmpeg doesn't provide real-time %)
+        # Monitor progress (simple simulation)
         for i in range(0, 101, 10):
             with task_lock:
                 if task_id in tasks:
                     tasks[task_id]['progress'] = i
-            time.sleep(0.5)  # Simulate progress
+            time.sleep(0.5)
         
         stdout, stderr = process.communicate()
         
@@ -138,24 +147,31 @@ def run_ffmpeg_task(task_id, video_url, sub_path, font_path, safe_output_filenam
             # Success - Calculate expiry time
             expiry_time = datetime.now() + timedelta(hours=LINK_EXPIRY_HOURS)
             
+            # CRITICAL: URL-encode the filename for the download link
+            url_encoded_filename = quote(safe_output_name)
+            
             with task_lock:
                 tasks[task_id]['status'] = 'completed'
                 tasks[task_id]['progress'] = 100
-                tasks[task_id]['download_url'] = f"/download/{task_id}/{safe_output_filename}"
-                tasks[task_id]['safe_filename'] = safe_output_filename
+                tasks[task_id]['download_url'] = f"/download/{task_id}/{url_encoded_filename}"
+                tasks[task_id]['safe_filename'] = safe_output_name  # Store unencoded for file lookup
                 tasks[task_id]['expiry_time'] = expiry_time.isoformat()
                 tasks[task_id]['expiry_display'] = expiry_time.strftime('%Y-%m-%d %H:%M:%S')
                 COMPLETED_JOBS += 1
+            
+            print(f"[SUCCESS] Task {task_id}: {safe_output_name}")
         else:
             # Failure
             with task_lock:
                 tasks[task_id]['status'] = 'failed'
                 tasks[task_id]['error'] = stderr or 'FFmpeg processing failed'
+            print(f"[FAILED] Task {task_id}: {stderr}")
     
     except Exception as e:
         with task_lock:
             tasks[task_id]['status'] = 'failed'
             tasks[task_id]['error'] = str(e)
+        print(f"[ERROR] Task {task_id}: {str(e)}")
 
 
 @app.route('/')
@@ -171,7 +187,6 @@ def start_mux():
     
     try:
         # FORCE DIRECTORY CREATION (Critical for ephemeral storage like Render)
-        # This MUST happen BEFORE any file operations
         if not os.path.exists(TEMP_UPLOADS):
             os.makedirs(TEMP_UPLOADS, exist_ok=True)
             print(f"[INFO] Created missing directory: {TEMP_UPLOADS}")
@@ -194,7 +209,7 @@ def start_mux():
         font_file = request.files.get('font_file')
         cached_font = request.form.get('cached_font', '').strip()
         
-        # Validation (backend safeguard)
+        # Validation
         if not video_url:
             return jsonify({'success': False, 'error': 'Video URL is required'}), 400
         if not subtitle_file:
@@ -207,66 +222,51 @@ def start_mux():
         # Generate unique task ID
         task_id = str(uuid.uuid4())
         
-        # STRICT FILENAME SANITIZATION - Subtitle
+        # Sanitize subtitle filename
         safe_sub_name = secure_filename(subtitle_file.filename)
         if not safe_sub_name:
             return jsonify({'success': False, 'error': 'Invalid subtitle filename'}), 400
         
-        # Add unique prefix to avoid collisions
         safe_sub_name = f"{task_id}_{safe_sub_name}"
-        
-        # Use ABSOLUTE PATH for subtitle
         sub_path = os.path.abspath(os.path.join(TEMP_UPLOADS, safe_sub_name))
         subtitle_file.save(sub_path)
         print(f"[INFO] Saved subtitle: {sub_path}")
         
-        # STRICT FILENAME SANITIZATION - Font
+        # Handle font (new upload or cached)
         if font_file:
             safe_font_name = secure_filename(font_file.filename)
             if not safe_font_name:
                 return jsonify({'success': False, 'error': 'Invalid font filename'}), 400
             
-            # Use ABSOLUTE PATH for font
             font_path = os.path.abspath(os.path.join(TEMP_FONTS, safe_font_name))
             font_file.save(font_path)
             print(f"[INFO] Saved font: {font_path}")
             font_name_for_cache = safe_font_name
         else:
-            # Use cached font - sanitize cached name too
+            # Use cached font
             safe_cached_font = secure_filename(cached_font)
             if not safe_cached_font:
                 return jsonify({'success': False, 'error': 'Invalid cached font name'}), 400
             
-            # Use ABSOLUTE PATH for cached font
             font_path = os.path.abspath(os.path.join(TEMP_FONTS, safe_cached_font))
             if not os.path.exists(font_path):
                 return jsonify({'success': False, 'error': 'Cached font not found'}), 400
             print(f"[INFO] Using cached font: {font_path}")
             font_name_for_cache = safe_cached_font
         
-        # STRICT FILENAME SANITIZATION - Output (ALLOW SPACES)
-        safe_output_name = sanitize_with_spaces(output_name)
-        if not safe_output_name:
-            return jsonify({'success': False, 'error': 'Invalid output filename'}), 400
-        
-        # Ensure .mkv extension
-        if not safe_output_name.lower().endswith('.mkv'):
-            safe_output_name = f"{safe_output_name}.mkv"
-        
         # Initialize task
         with task_lock:
             tasks[task_id] = {
                 'status': 'queued',
                 'progress': 0,
-                'output_name': output_name,  # Original name for display
-                'safe_filename': safe_output_name,  # Sanitized filename for storage
+                'output_name': output_name,
                 'created_at': datetime.now().isoformat()
             }
         
         # Start background thread immediately
         thread = threading.Thread(
             target=run_ffmpeg_task,
-            args=(task_id, video_url, sub_path, font_path, safe_output_name),
+            args=(task_id, video_url, sub_path, font_path, output_name),
             daemon=True
         )
         thread.start()
@@ -279,10 +279,9 @@ def start_mux():
         })
     
     except Exception as e:
-        # Catch ALL errors and return JSON (never HTML error pages)
         print(f"[ERROR] /start-mux: {str(e)}")
         import traceback
-        traceback.print_exc()  # Print full traceback for debugging
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': f'Server error: {str(e)}'
@@ -314,10 +313,21 @@ def progress(task_id):
 
 @app.route('/download/<task_id>/<path:filename>')
 def download(task_id, filename):
-    """Serve download file - Now supports filenames with spaces"""
+    """
+    Serve download file - FIXED for URL-encoded filenames with spaces.
+    1. Decode URL-encoded filename (e.g., 'Video%20Ep%2001.mkv' -> 'Video Ep 01.mkv')
+    2. Sanitize to match saved filename
+    3. Serve file
+    """
     try:
-        # Sanitize filename parameter (preserve spaces)
-        safe_filename = sanitize_with_spaces(filename)
+        # STEP 1: Decode URL-encoded filename
+        decoded_filename = unquote(filename)
+        print(f"[DEBUG] Decoded filename: {decoded_filename}")
+        
+        # STEP 2: Sanitize using same function as worker
+        safe_filename = sanitize_filename_allow_spaces(decoded_filename)
+        print(f"[DEBUG] Safe filename: {safe_filename}")
+        
         if not safe_filename:
             return jsonify({'error': 'Invalid filename'}), 400
         
@@ -327,8 +337,9 @@ def download(task_id, filename):
         if not task_data:
             return jsonify({'error': 'Task not found'}), 404
         
-        # Verify the requested filename matches the task's stored filename
+        # STEP 3: Verify filename matches task's stored filename
         if safe_filename != task_data.get('safe_filename'):
+            print(f"[ERROR] Filename mismatch: {safe_filename} != {task_data.get('safe_filename')}")
             return jsonify({'error': 'Filename mismatch'}), 403
         
         # Check if link expired
@@ -337,15 +348,20 @@ def download(task_id, filename):
             if datetime.now() >= expiry_time:
                 return jsonify({'error': 'Download link has expired'}), 410
         
+        # STEP 4: Locate file on disk
         file_path = os.path.join(TEMP_UPLOADS, safe_filename)
+        print(f"[DEBUG] Looking for file: {file_path}")
         
         if not os.path.exists(file_path):
-            return jsonify({'error': 'File not found'}), 404
+            return jsonify({'error': f'File not found: {safe_filename}'}), 404
         
+        print(f"[SUCCESS] Serving file: {safe_filename}")
         return send_from_directory(TEMP_UPLOADS, safe_filename, as_attachment=True)
     
     except Exception as e:
         print(f"[ERROR] /download/{task_id}/{filename}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
@@ -355,14 +371,13 @@ def clear_data():
     global COMPLETED_JOBS
     
     try:
-        # Clear temp folders
         cleanup_temp_folders()
         
-        # Reset tasks and counter
         with task_lock:
             tasks.clear()
             COMPLETED_JOBS = 0
         
+        print("[INFO] Storage cleared successfully")
         return jsonify({'success': True, 'message': 'Storage cleared successfully'})
     
     except Exception as e:
@@ -373,7 +388,7 @@ def clear_data():
         }), 500
 
 
-# Custom error handler for file too large (413)
+# Custom error handlers
 @app.errorhandler(413)
 def request_entity_too_large(error):
     """Handle file size exceeded error"""
@@ -383,7 +398,6 @@ def request_entity_too_large(error):
     }), 413
 
 
-# Custom error handler for all other 500 errors
 @app.errorhandler(500)
 def internal_server_error(error):
     """Handle internal server errors"""
@@ -396,11 +410,12 @@ def internal_server_error(error):
 if __name__ == '__main__':
     # Initialize clean environment on startup
     print("=" * 60)
-    print("  AD WEB MUXING SERVER - INITIALIZING")
+    print("  AD WEB MUXING SERVER - PRODUCTION MODE")
     print("=" * 60)
     cleanup_temp_folders()
     print(f"[OK] Temp folders initialized: {TEMP_UPLOADS}, {TEMP_FONTS}")
     print(f"[OK] Link expiration time: {LINK_EXPIRY_HOURS} hours")
+    print(f"[OK] Max jobs: {MAX_JOBS}")
     
     # Start cleanup daemon thread
     cleanup_thread = threading.Thread(target=cleanup_expired_links, daemon=True)
