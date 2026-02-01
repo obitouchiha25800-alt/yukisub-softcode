@@ -3,10 +3,33 @@ import uuid
 import threading
 import subprocess
 import shutil
+import re
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import time
+
+
+def sanitize_with_spaces(filename):
+    """
+    Custom sanitization that allows spaces, brackets, and hyphens.
+    Removes dangerous characters like slashes to prevent directory traversal.
+    """
+    # Remove directory traversal characters and dangerous symbols
+    # Keep: Alphanumeric, spaces, dots, hyphens, underscores, brackets () []
+    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
+    
+    # Remove any leading/trailing spaces or dots
+    filename = filename.strip(). strip('.')
+    
+    # Collapse multiple spaces into single space
+    filename = re.sub(r'\s+', ' ', filename)
+    
+    # If filename is empty after sanitization, return a default name
+    if not filename:
+        return "output"
+    
+    return filename
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
@@ -221,8 +244,8 @@ def start_mux():
             print(f"[INFO] Using cached font: {font_path}")
             font_name_for_cache = safe_cached_font
         
-        # STRICT FILENAME SANITIZATION - Output
-        safe_output_name = secure_filename(output_name)
+        # STRICT FILENAME SANITIZATION - Output (ALLOW SPACES)
+        safe_output_name = sanitize_with_spaces(output_name)
         if not safe_output_name:
             return jsonify({'success': False, 'error': 'Invalid output filename'}), 400
         
@@ -289,12 +312,12 @@ def progress(task_id):
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
-@app.route('/download/<task_id>/<filename>')
+@app.route('/download/<task_id>/<path:filename>')
 def download(task_id, filename):
-    """Serve download file"""
+    """Serve download file - Now supports filenames with spaces"""
     try:
-        # Sanitize filename parameter
-        safe_filename = secure_filename(filename)
+        # Sanitize filename parameter (preserve spaces)
+        safe_filename = sanitize_with_spaces(filename)
         if not safe_filename:
             return jsonify({'error': 'Invalid filename'}), 400
         
