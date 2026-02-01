@@ -138,18 +138,17 @@ def index():
 
 @app.route('/start-mux', methods=['POST'])
 def start_mux():
-    """Start a new muxing task (direct threading)"""
+    """Start a new muxing task (direct threading) - WITH ROBUST ERROR HANDLING"""
     global COMPLETED_JOBS
     
-    # Check storage limit
-    if COMPLETED_JOBS >= MAX_JOBS:
-        return jsonify({
-            'success': False,
-            'error': 'STORAGE_FULL',
-            'message': 'Storage limit reached (12 jobs). Please clear storage first.'
-        }), 429
-    
     try:
+        # Check storage limit
+        if COMPLETED_JOBS >= MAX_JOBS:
+            return jsonify({
+                'success': False,
+                'error': 'Storage limit reached (12 jobs). Please clear storage first.'
+            }), 429
+        
         # Get form data
         video_url = request.form.get('video_url', '').strip()
         output_name = request.form.get('output_name', '').strip()
@@ -172,12 +171,18 @@ def start_mux():
         
         # Save subtitle file
         sub_filename = secure_filename(subtitle_file.filename)
+        if not sub_filename:
+            return jsonify({'success': False, 'error': 'Invalid subtitle filename'}), 400
+            
         sub_path = os.path.join(TEMP_UPLOADS, f"{task_id}_{sub_filename}")
         subtitle_file.save(sub_path)
         
         # Handle font (new upload or cached)
         if font_file:
             font_filename = secure_filename(font_file.filename)
+            if not font_filename:
+                return jsonify({'success': False, 'error': 'Invalid font filename'}), 400
+                
             font_path = os.path.join(TEMP_FONTS, font_filename)
             font_file.save(font_path)
         else:
@@ -210,48 +215,63 @@ def start_mux():
         })
     
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        # Catch ALL errors and return JSON (never HTML error pages)
+        print(f"[ERROR] /start-mux: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }), 500
 
 
 @app.route('/progress/<task_id>')
 def progress(task_id):
     """Get task progress"""
-    with task_lock:
-        task_data = tasks.get(task_id)
+    try:
+        with task_lock:
+            task_data = tasks.get(task_id)
+        
+        if not task_data:
+            return jsonify({'error': 'Task not found'}), 404
+        
+        # Check if link expired
+        if task_data['status'] == 'completed':
+            expiry_time = datetime.fromisoformat(task_data['expiry_time'])
+            if datetime.now() >= expiry_time:
+                return jsonify({'error': 'Link expired', 'status': 'expired'}), 410
+        
+        return jsonify(task_data)
     
-    if not task_data:
-        return jsonify({'error': 'Task not found'}), 404
-    
-    # Check if link expired
-    if task_data['status'] == 'completed':
-        expiry_time = datetime.fromisoformat(task_data['expiry_time'])
-        if datetime.now() >= expiry_time:
-            return jsonify({'error': 'Link expired', 'status': 'expired'}), 410
-    
-    return jsonify(task_data)
+    except Exception as e:
+        print(f"[ERROR] /progress/{task_id}: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
 @app.route('/download/<task_id>/<filename>')
 def download(task_id, filename):
     """Serve download file"""
-    with task_lock:
-        task_data = tasks.get(task_id)
+    try:
+        with task_lock:
+            task_data = tasks.get(task_id)
+        
+        if not task_data:
+            return jsonify({'error': 'Task not found'}), 404
+        
+        # Check if link expired
+        if task_data['status'] == 'completed':
+            expiry_time = datetime.fromisoformat(task_data['expiry_time'])
+            if datetime.now() >= expiry_time:
+                return jsonify({'error': 'Download link has expired'}), 410
+        
+        file_path = os.path.join(TEMP_UPLOADS, filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        return send_from_directory(TEMP_UPLOADS, filename, as_attachment=True)
     
-    if not task_data:
-        return jsonify({'error': 'Task not found'}), 404
-    
-    # Check if link expired
-    if task_data['status'] == 'completed':
-        expiry_time = datetime.fromisoformat(task_data['expiry_time'])
-        if datetime.now() >= expiry_time:
-            return jsonify({'error': 'Download link has expired'}), 410
-    
-    file_path = os.path.join(TEMP_UPLOADS, filename)
-    
-    if not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
-    
-    return send_from_directory(TEMP_UPLOADS, filename, as_attachment=True)
+    except Exception as e:
+        print(f"[ERROR] /download/{task_id}/{filename}: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
 @app.route('/clear-data', methods=['POST'])
@@ -271,7 +291,31 @@ def clear_data():
         return jsonify({'success': True, 'message': 'Storage cleared successfully'})
     
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"[ERROR] /clear-data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }), 500
+
+
+# Custom error handler for file too large (413)
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """Handle file size exceeded error"""
+    return jsonify({
+        'success': False,
+        'error': 'File too large. Maximum size is 500MB.'
+    }), 413
+
+
+# Custom error handler for all other 500 errors
+@app.errorhandler(500)
+def internal_server_error(error):
+    """Handle internal server errors"""
+    return jsonify({
+        'success': False,
+        'error': 'Internal server error. Please try again.'
+    }), 500
 
 
 if __name__ == '__main__':
