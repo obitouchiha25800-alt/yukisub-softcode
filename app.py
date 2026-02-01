@@ -32,6 +32,10 @@ job_queue = queue.Queue()
 COMPLETED_JOBS = 0
 STORAGE_LIMIT = 12
 
+# Track active FFmpeg process for cleanup
+active_ffmpeg_process = None
+process_lock = threading.Lock()
+
 # Smart FFmpeg Path Detection
 def get_ffmpeg_path():
     """
@@ -80,7 +84,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
     """
     Process FFmpeg muxing with progress tracking
     """
-    global COMPLETED_JOBS
+    global COMPLETED_JOBS, active_ffmpeg_process
     
     try:
         tasks[task_id]['status'] = 'processing'
@@ -114,7 +118,7 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
         print(f"🚀 Executing FFmpeg Command:")
         print(f"   {' '.join(ffmpeg_command)}\n")
 
-        # Start FFmpeg process
+        # Start FFmpeg process and track it globally
         process = subprocess.Popen(
             ffmpeg_command,
             stdout=subprocess.PIPE,
@@ -122,6 +126,10 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
             universal_newlines=True,
             bufsize=1
         )
+        
+        # Track the active process
+        with process_lock:
+            active_ffmpeg_process = process
 
         # Variables for progress tracking
         duration = None
@@ -152,6 +160,10 @@ def process_muxing(task_id, video_url, subtitle_path, font_path, output_path, cu
 
         # Wait for process to complete
         process.wait()
+        
+        # Clear active process tracking
+        with process_lock:
+            active_ffmpeg_process = None
 
         # Check if FFmpeg succeeded
         if process.returncode != 0:
@@ -372,39 +384,45 @@ def get_progress(task_id):
     
     task = tasks[task_id]
     status = task['status']
+    anime_name = task.get('filename', 'Unknown')
     
     # If queued, return position
     if status == 'queued':
         position = get_queue_position(task_id)
         return jsonify({
             'status': 'queued',
-            'position': position
+            'position': position,
+            'anime_name': anime_name
         })
     
     # If processing, return progress
     if status == 'processing':
         return jsonify({
             'status': 'processing',
-            'progress': task.get('progress', 0)
+            'progress': task.get('progress', 0),
+            'anime_name': anime_name
         })
     
     # If completed, return done status
     if status == 'completed':
         return jsonify({
             'status': 'completed',
-            'progress': 100
+            'progress': 100,
+            'anime_name': anime_name
         })
     
     # If error, return error
     if status == 'error':
         return jsonify({
             'status': 'error',
-            'error': task.get('error', 'Unknown error')
+            'error': task.get('error', 'Unknown error'),
+            'anime_name': anime_name
         })
     
     return jsonify({
         'status': status,
-        'progress': task.get('progress', 0)
+        'progress': task.get('progress', 0),
+        'anime_name': anime_name
     })
 
 @app.route('/download/<task_id>', methods=['GET'])
@@ -459,14 +477,32 @@ def download_file(task_id):
 @app.route('/clear-data', methods=['POST'])
 def clear_data():
     """
-    Aggressively clears all temporary data and resets the storage counter
+    Aggressively clears all temporary data, kills FFmpeg processes, and resets the storage counter
     """
-    global COMPLETED_JOBS
+    global COMPLETED_JOBS, active_ffmpeg_process
     
     try:
         print("\n" + "="*60)
         print("🗑️ AGGRESSIVELY CLEARING ALL DATA...")
         print("="*60)
+        
+        # CRITICAL: Kill active FFmpeg process if running
+        with process_lock:
+            if active_ffmpeg_process and active_ffmpeg_process.poll() is None:
+                try:
+                    print("⚔️ Terminating active FFmpeg process...")
+                    active_ffmpeg_process.terminate()
+                    try:
+                        active_ffmpeg_process.wait(timeout=3)
+                        print("✅ FFmpeg process terminated gracefully")
+                    except subprocess.TimeoutExpired:
+                        print("💀 Force killing FFmpeg process...")
+                        active_ffmpeg_process.kill()
+                        active_ffmpeg_process.wait()
+                        print("✅ FFmpeg process force killed")
+                except Exception as e:
+                    print(f"⚠️ Error killing FFmpeg process: {e}")
+            active_ffmpeg_process = None
         
         # Reset counter
         old_count = COMPLETED_JOBS
@@ -531,6 +567,58 @@ def clear_data():
         traceback.print_exc()
         return jsonify({'error': f'Failed to clear data: {str(e)}'}), 500
 
+# Flush function to ensure clean slate on startup
+def flush_temp_folders():
+    """
+    Deletes and recreates temp folders to ensure a clean startup
+    """
+    global COMPLETED_JOBS, active_ffmpeg_process
+    
+    print("\n" + "="*60)
+    print("🧹 FLUSHING TEMP FOLDERS ON STARTUP...")
+    print("="*60)
+    
+    # Reset global state
+    COMPLETED_JOBS = 0
+    tasks.clear()
+    active_ffmpeg_process = None
+    
+    # Clear job queue
+    while not job_queue.empty():
+        try:
+            job_queue.get_nowait()
+            job_queue.task_done()
+        except:
+            break
+    
+    # Delete and recreate temp_uploads
+    if os.path.exists(TEMP_UPLOADS):
+        try:
+            shutil.rmtree(TEMP_UPLOADS, ignore_errors=False)
+            print(f"🗑️ DELETED: {TEMP_UPLOADS}")
+        except Exception as e:
+            print(f"⚠️ Error deleting {TEMP_UPLOADS}: {e}")
+            shutil.rmtree(TEMP_UPLOADS, ignore_errors=True)
+    
+    os.makedirs(TEMP_UPLOADS, exist_ok=True)
+    print(f"📁 RECREATED: {TEMP_UPLOADS}")
+    
+    # Delete and recreate temp_fonts
+    if os.path.exists(TEMP_FONTS):
+        try:
+            shutil.rmtree(TEMP_FONTS, ignore_errors=False)
+            print(f"🗑️ DELETED: {TEMP_FONTS}")
+        except Exception as e:
+            print(f"⚠️ Error deleting {TEMP_FONTS}: {e}")
+            shutil.rmtree(TEMP_FONTS, ignore_errors=True)
+    
+    os.makedirs(TEMP_FONTS, exist_ok=True)
+    print(f"📁 RECREATED: {TEMP_FONTS}")
+    
+    print("="*60)
+    print("✅ FLUSH COMPLETE - CLEAN SLATE READY!")
+    print("="*60 + "\n")
+
 # Start the background queue worker thread
 def start_worker():
     worker_thread = threading.Thread(target=process_queue, daemon=True)
@@ -546,6 +634,9 @@ if __name__ == '__main__':
     print(f"🎥 FFmpeg Path: {FFMPEG_PATH}")
     print(f"📊 Storage Limit: {STORAGE_LIMIT} jobs")
     print("="*60 + "\n")
+    
+    # CRITICAL: Flush temp folders on startup for clean slate
+    flush_temp_folders()
     
     # Start background worker
     start_worker()
