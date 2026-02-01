@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AD Web Muxing !!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #121212;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Mobile-First Container */
+        .container {
+            width: 90%;
+            max-width: 500px;
+            margin-top: 40px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe, #fd79a8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-shift 3s ease infinite;
+            background-size: 200% 200%;
+        }
+
+        @keyframes gradient-shift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            fill: #6c5ce7;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        /* Card */
+        .card {
+            background: #1e272e;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(108, 92, 231, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(108, 92, 231, 0.3);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #a29bfe;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Touch-Friendly Inputs */
+        input[type="text"],
+        input[type="url"] {
+            width: 100%;
+            min-height: 48px;
+            padding: 14px 18px;
+            background: #121212;
+            border: 2px solid #2d3436;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus {
+            border-color: #6c5ce7;
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+        }
+
+        input[type="file"] {
+            width: 100%;
+            min-height: 48px;
+            padding: 14px 18px;
+            background: #121212;
+            border: 2px dashed #2d3436;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        input[type="file"]:hover {
+            border-color: #6c5ce7;
+            background: #1a1a1a;
+        }
+
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #6c5ce7;
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Cached Font Indicator - Compact Badge Style */
+        .cached-font-indicator {
+            display: none;
+            font-size: 13px;
+            background: rgba(46, 204, 113, 0.15);
+            color: #2ecc71;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cached-font-indicator.active {
+            display: flex;
+        }
+
+        .cached-font-text {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .remove-font-btn {
+            background: transparent;
+            color: #e74c3c;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        .remove-font-btn:hover {
+            background: rgba(231, 76, 60, 0.15);
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        /* Submit Button - Touch Friendly */
+        .submit-btn {
+            width: 100%;
+            min-height: 52px;
+            padding: 16px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(108, 92, 231, 0.5);
+            background: linear-gradient(135deg, #5f4fd1, #8b85dd);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-icon {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        /* Storage Alert */
+        .storage-alert {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: rgba(231, 76, 60, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(231, 76, 60, 0.4);
+            text-align: center;
+        }
+
+        .storage-alert.active {
+            display: block;
+        }
+
+        .storage-alert-icon {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+        }
+
+        .storage-alert-title {
+            color: #e74c3c;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .storage-alert-message {
+            color: #bdc3c7;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .clear-storage-btn {
+            min-height: 48px;
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .clear-storage-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(231, 76, 60, 0.5);
+            background: linear-gradient(135deg, #c0392b, #a93226);
+        }
+
+        .clear-storage-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Queue Status (Yellow) */
+        .queue-container {
+            display: none;
+            margin-top: 25px;
+            padding: 25px;
+            background: rgba(241, 196, 15, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(241, 196, 15, 0.4);
+        }
+
+        .queue-container.active {
+            display: block;
+        }
+
+        .queue-text {
+            color: #f1c40f;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .queue-icon {
+            font-size: 1.3rem;
+        }
+
+        /* Progress Container (Blue) */
+        .progress-container {
+            display: none;
+            margin-top: 25px;
+            padding: 25px;
+            background: rgba(108, 92, 231, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(108, 92, 231, 0.3);
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-text {
+            color: #a29bfe;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 30px;
+            background: #121212;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border-radius: 15px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(108, 92, 231, 0.2);
+            border-top: 4px solid #6c5ce7;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto 0;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Error Message */
+        .error-message {
+            display: none;
+            margin-top: 20px;
+            padding: 15px 18px;
+            background: rgba(255, 71, 87, 0.1);
+            border: 2px solid rgba(255, 71, 87, 0.3);
+            border-radius: 12px;
+            color: #ff4757;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        /* Success Message (Green) */
+        .success-message {
+            display: none;
+            margin-top: 20px;
+            padding: 15px 18px;
+            background: rgba(39, 174, 96, 0.1);
+            border: 2px solid rgba(39, 174, 96, 0.3);
+            border-radius: 12px;
+            color: #27ae60;
+            font-weight: 500;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .success-message.active {
+            display: block;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #636e72;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Mobile Responsive - Phones */
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+
+            .container {
+                width: 95%;
+                margin-top: 20px;
+            }
+
+            .header {
+                margin-bottom: 25px;
+                gap: 10px;
+            }
+
+            .header-title {
+                font-size: 1.6rem;
+            }
+
+            .header-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .card {
+                padding: 20px;
+                border-radius: 15px;
+            }
+
+            label {
+                font-size: 0.85rem;
+            }
+
+            input[type="text"],
+            input[type="url"],
+            input[type="file"] {
+                font-size: 0.95rem;
+                min-height: 46px;
+            }
+
+            .submit-btn {
+                font-size: 0.95rem;
+                min-height: 50px;
+            }
+
+            .storage-alert {
+                padding: 20px;
+            }
+
+            .storage-alert-icon {
+                font-size: 3rem;
+            }
+
+            .storage-alert-title {
+                font-size: 1.1rem;
+            }
+
+            .storage-alert-message {
+                font-size: 0.9rem;
+            }
+
+            .queue-text,
+            .progress-text {
+                font-size: 0.9rem;
+            }
+
+            .footer {
+                margin-top: 30px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Very Small Phones */
+        @media (max-width: 360px) {
+            .header-title {
+                font-size: 1.4rem;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .cached-font-text {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M21 3H3C1.9 3 1 3.9 1 5V17C1 18.1 1.9 19 3 19H8V21H16V19H21C22.1 19 23 18.1 23 17V5C23 3.9 22.1 3 21 3ZM21 17H3V5H21V17ZM16 11L10 7V15L16 11Z" />
+            </svg>
+            <h1 class="header-title">AD Web Muxing !!</h1>
+        </div>
+
+        <!-- Main Card -->
+        <div class="card">
+            <!-- Main Form -->
+            <form id="muxForm" enctype="multipart/form-data">
+                <!-- Video URL Input -->
+                <div class="form-group">
+                    <label for="video_url">Video URL (.m3u8 / .mp4)</label>
+                    <input type="url" id="video_url" name="video_url" placeholder="Paste Video URL (.m3u8)" required>
+                </div>
+
+                <!-- Subtitle File Input -->
+                <div class="form-group">
+                    <label for="subtitle_file">Subtitle File (.ass)</label>
+                    <input type="file" id="subtitle_file" name="subtitle_file" accept=".ass" required>
+                </div>
+
+                <!-- Font File Input (Dynamic) -->
+                <div class="form-group">
+                    <label for="font_file">Font File (.ttf / .otf)</label>
+
+                    <!-- Cached Font Indicator (HIDDEN by default) -->
+                    <div class="cached-font-indicator" id="cachedFontIndicator">
+                        <div class="cached-font-text">
+                            <span>✅</span>
+                            <span id="cachedFontName">Using Cached Font</span>
+                        </div>
+                        <button type="button" class="remove-font-btn" id="removeFontBtn">✕</button>
+                    </div>
+
+                    <!-- Font File Input (Shown by default) -->
+                    <input type="file" id="font_file" name="font_file" accept=".ttf,.otf" required>
+                </div>
+
+                <!-- Output Filename Input -->
+                <div class="form-group">
+                    <label for="output_filename">Output Filename (Optional)</label>
+                    <input type="text" id="output_filename" name="output_filename"
+                        placeholder="Your Lie in April Ep 01">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5V19L19 12L8 5Z" fill="currentColor" />
+                    </svg>
+                    Start Muxing
+                </button>
+            </form>
+
+            <!-- Storage Alert (Hidden by default) -->
+            <div class="storage-alert" id="storageAlert">
+                <div class="storage-alert-icon">♻️</div>
+                <div class="storage-alert-title">Storage Limit Reached (12/12)</div>
+                <div class="storage-alert-message">
+                    The server has processed 12 jobs and needs to clear temporary files.<br>
+                    Click below to free up space and continue.
+                </div>
+                <button class="clear-storage-btn" id="clearStorageBtn">Clear Storage & Continue</button>
+            </div>
+
+            <!-- Queue Status (Yellow) -->
+            <div class="queue-container" id="queueContainer">
+                <div class="queue-text">
+                    <span class="queue-icon">⚠️</span>
+                    <span id="queueText">Waiting in Queue...</span>
+                </div>
+            </div>
+
+            <!-- Progress Container (Blue) -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-text" id="progressText">Processing...</div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progressBar">0%</div>
+                </div>
+                <div class="spinner"></div>
+            </div>
+
+            <!-- Success Message (Green) -->
+            <div class="success-message" id="successMessage">
+                ✅ Processing complete! Download started automatically.
+            </div>
+
+            <!-- Error Message -->
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Powered by YukiSub • Made by Ad ⚡
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('muxForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const queueContainer = document.getElementById('queueContainer');
+        const queueText = document.getElementById('queueText');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const storageAlert = document.getElementById('storageAlert');
+        const clearStorageBtn = document.getElementById('clearStorageBtn');
+
+        // Font caching elements
+        const fontFileInput = document.getElementById('font_file');
+        const cachedFontIndicator = document.getElementById('cachedFontIndicator');
+        const cachedFontName = document.getElementById('cachedFontName');
+        const removeFontBtn = document.getElementById('removeFontBtn');
+
+        // Form fields
+        const videoUrlInput = document.getElementById('video_url');
+        const subtitleFileInput = document.getElementById('subtitle_file');
+        const outputFilenameInput = document.getElementById('output_filename');
+
+        let pollInterval = null;
+
+        // ============================================
+        // FORM RESET FUNCTION
+        // ============================================
+
+        function resetForm() {
+            videoUrlInput.value = '';
+            subtitleFileInput.value = '';
+            outputFilenameInput.value = '';
+            console.log('✅ Form cleared (keeping cached font)');
+        }
+
+        // ============================================
+        // FONT CACHING LOGIC (sessionStorage)
+        // ============================================
+
+        function getCachedFont() {
+            return sessionStorage.getItem('cachedFont');
+        }
+
+        function setCachedFont(fontName) {
+            sessionStorage.setItem('cachedFont', fontName);
+        }
+
+        function removeCachedFont() {
+            sessionStorage.removeItem('cachedFont');
+        }
+
+        function updateFontUI() {
+            const cachedFont = getCachedFont();
+
+            if (cachedFont) {
+                // Show cached font indicator, hide file input
+                cachedFontIndicator.classList.add('active');
+                fontFileInput.style.display = 'none';
+                fontFileInput.removeAttribute('required');
+                cachedFontName.textContent = `Using Cached: ${cachedFont}`;
+                console.log('✅ Cached font UI shown:', cachedFont);
+            } else {
+                // Hide cached font indicator, show file input
+                cachedFontIndicator.classList.remove('active');
+                fontFileInput.style.display = 'block';
+                fontFileInput.setAttribute('required', 'required');
+                console.log('ℹ️ No cached font, showing upload input');
+            }
+        }
+
+        removeFontBtn.addEventListener('click', () => {
+            removeCachedFont();
+            updateFontUI();
+        });
+
+        // CRITICAL: Initialize UI on page load
+        updateFontUI();
+
+        // ============================================
+        // PERSISTENT PROGRESS (localStorage)
+        // ============================================
+
+        function saveActiveTask(taskId) {
+            localStorage.setItem('activeTaskId', taskId);
+        }
+
+        function getActiveTask() {
+            return localStorage.getItem('activeTaskId');
+        }
+
+        function clearActiveTask() {
+            localStorage.removeItem('activeTaskId');
+        }
+
+        window.addEventListener('load', () => {
+            const activeTask = getActiveTask();
+            if (activeTask) {
+                console.log('Resuming task:', activeTask);
+                resumeTaskProgress(activeTask);
+            }
+        });
+
+        function resumeTaskProgress(taskId) {
+            submitBtn.disabled = true;
+            startPolling(taskId);
+        }
+
+        // ============================================
+        // STORAGE MANAGEMENT
+        // ============================================
+
+        function showStorageAlert() {
+            form.style.display = 'none';
+            storageAlert.classList.add('active');
+        }
+
+        function hideStorageAlert() {
+            storageAlert.classList.remove('active');
+            form.style.display = 'block';
+        }
+
+        clearStorageBtn.addEventListener('click', async () => {
+            try {
+                clearStorageBtn.disabled = true;
+                clearStorageBtn.textContent = 'Clearing...';
+
+                const response = await fetch('/clear-data', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to clear data');
+                }
+
+                const data = await response.json();
+                console.log('Data cleared:', data);
+
+                // Clear session storage (fonts)
+                sessionStorage.clear();
+                updateFontUI();
+
+                // Clear local storage (tasks)
+                localStorage.clear();
+
+                // Reset form
+                resetForm();
+
+                // Reset UI
+                hideStorageAlert();
+                errorMessage.classList.remove('active');
+                successMessage.classList.remove('active');
+                queueContainer.classList.remove('active');
+                progressContainer.classList.remove('active');
+
+                // Show success message briefly
+                successMessage.textContent = '✅ Storage cleared successfully! You can now submit new jobs.';
+                successMessage.classList.add('active');
+                setTimeout(() => {
+                    successMessage.classList.remove('active');
+                    successMessage.textContent = '✅ Processing complete! Download started automatically.';
+                }, 3000);
+
+                clearStorageBtn.disabled = false;
+                clearStorageBtn.textContent = 'Clear Storage & Continue';
+
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                alert('Failed to clear storage. Please try again.');
+                clearStorageBtn.disabled = false;
+                clearStorageBtn.textContent = 'Clear Storage & Continue';
+            }
+        });
+
+        // ============================================
+        // FORM SUBMISSION
+        // ============================================
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Reset states
+            errorMessage.classList.remove('active');
+            successMessage.classList.remove('active');
+            queueContainer.classList.remove('active');
+            progressContainer.classList.remove('active');
+            errorMessage.textContent = '';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+
+            submitBtn.disabled = true;
+
+            const formData = new FormData(form);
+
+            // Font handling
+            const cachedFont = getCachedFont();
+            if (cachedFont) {
+                formData.delete('font_file');
+                formData.append('cached_font_name', cachedFont);
+                console.log('Using cached font:', cachedFont);
+            } else {
+                console.log('Uploading new font');
+            }
+
+            try {
+                const startResponse = await fetch('/start-mux', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const responseData = await startResponse.json();
+
+                // Check for STORAGE_FULL error
+                if (responseData.error === 'STORAGE_FULL') {
+                    console.warn('Storage limit reached!');
+                    alert('⚠️ Storage Limit Reached (12/12)!\n\nPlease clear the storage to continue.');
+                    showStorageAlert();
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                if (!startResponse.ok) {
+                    throw new Error(responseData.error || 'Failed to start processing');
+                }
+
+                const { task_id, font_name } = responseData;
+                console.log('Task started:', task_id);
+                console.log('Font name:', font_name);
+
+                // Save font name to session storage
+                if (font_name) {
+                    setCachedFont(font_name);
+                    updateFontUI();
+                }
+
+                // CRITICAL: Clear form immediately after successful submission
+                resetForm();
+
+                // Save task to localStorage and start polling
+                saveActiveTask(task_id);
+                startPolling(task_id);
+
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = error.message || 'An error occurred during processing';
+                errorMessage.classList.add('active');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // ============================================
+        // PROGRESS POLLING
+        // ============================================
+
+        function startPolling(taskId) {
+            pollInterval = setInterval(async () => {
+                try {
+                    const progressResponse = await fetch(`/progress/${taskId}`);
+                    const progressData = await progressResponse.json();
+
+                    console.log('Progress:', progressData);
+
+                    const { status, progress, position, error } = progressData;
+
+                    if (status === 'queued') {
+                        queueContainer.classList.add('active');
+                        progressContainer.classList.remove('active');
+                        queueText.textContent = `System Busy. Waiting in Queue (Position: ${position})`;
+                    }
+
+                    if (status === 'processing') {
+                        queueContainer.classList.remove('active');
+                        progressContainer.classList.add('active');
+                        progressBar.style.width = `${progress}%`;
+                        progressBar.textContent = `${progress}%`;
+                        progressText.textContent = `Processing: ${progress}%`;
+                    }
+
+                    if (status === 'completed') {
+                        clearInterval(pollInterval);
+                        clearActiveTask();
+                        progressText.textContent = 'Complete! Starting download...';
+
+                        setTimeout(() => {
+                            progressContainer.classList.remove('active');
+                            successMessage.classList.add('active');
+                            submitBtn.disabled = false;
+                            updateFontUI();
+                        }, 1000);
+
+                        window.location.href = `/download/${taskId}`;
+                    }
+
+                    if (status === 'error') {
+                        clearInterval(pollInterval);
+                        clearActiveTask();
+                        throw new Error(error || 'Processing failed');
+                    }
+
+                } catch (pollError) {
+                    clearInterval(pollInterval);
+                    clearActiveTask();
+
+                    errorMessage.textContent = pollError.message || 'An error occurred during processing';
+                    errorMessage.classList.add('active');
+                    queueContainer.classList.remove('active');
+                    progressContainer.classList.remove('active');
+                    submitBtn.disabled = false;
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>
